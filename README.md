@@ -96,7 +96,7 @@ cp cpu.txt cpu-heavy.txt
 
 * Install nodejs from https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi
 
-* Unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.7.3-beta/xmrig-amd-2.7.3-beta-win64.zip)
+* Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.7.3-beta/xmrig-amd-2.7.3-beta-win64.zip)
 
 * Download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmrig-amd directory
 
