@@ -42,7 +42,7 @@ wget https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js
 chmod +x mm.js
 ```
 
-* Prepare configs for different algorithms:
+* Prepare configs for different algorithms (put your Monero address):
 
 ```shell
 sed -i 's/"url": *"[^"]*",/"url": "localhost:3333",/' config.json
@@ -61,7 +61,7 @@ sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-lite\/1",/' config-lite.json
 
 # Usage example with xmr-stak on Ubuntu 16.04
 
-* Configure xmr-stak this way:
+* Configure xmr-stak this way (put your Monero address):
 
 ```
 - Please enter the currency that you want to mine:
@@ -73,13 +73,13 @@ localhost:3333
 44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1
 ```
 
-* Enable hashrate output so it can be collected by mm.js
+* Enable hashrate output so it can be collected by mm.js:
 
 ```shell
 sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' config.txt
 ```
 
-* Prepare and adjust threads for different algorithms:
+* Prepare and adjust configs for different algorithms:
 
 ```shell
 cp cpu.txt cpu-lite.txt
@@ -90,4 +90,27 @@ cp cpu.txt cpu-heavy.txt
 
 ```shell
 ./mm.js -p=gulf.moneroocean.stream:10001 --cn/1="./bin/xmr-stak --currency cryptonight_v7 --cpu cpu.txt" --cn/msr="./bin/xmr-stak --currency cryptonight_masari --cpu cpu.txt" --cn-lite/1="./bin/xmr-stak --currency cryptonight_lite_v7 --cpu cpu-lite.txt" --cn-heavy/0="./bin/xmr-stak --currency cryptonight_heavy --cpu cpu-heavy.txt" --cn-heavy/xhv="./bin/xmr-stak --currency cryptonight_haven --cpu cpu-heavy.txt" --cn-heavy/tube="./bin/xmr-stak --currency cryptonight_bittube2 --cpu cpu-heavy.txt"
+```
+
+# Usage example with xmrig-amd on Windows
+
+* Install nodejs from https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi
+
+* Unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.7.3-beta/xmrig-amd-2.7.3-beta-win64.zip)
+
+* Download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmrig-amd directory
+
+* Modify config.json file in xmrig-amd directory this way and adjust it for the best threads performance:
+
+	* Set "url" to "localhost:3333"
+	* Set "user" to "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1" (put your Monero address)
+
+* Copy config.jon to config-lite.json, put "algo" to "cryptonight-lite/1" in config-lite.json and adjust it for the best threads performance
+
+* Copy config.json to config-heavy.json, put "algo" to "cryptonight-heavy/0" in config-heavy.json and adjust it for the best threads performance
+
+* Run Meta Miner:
+
+```shell
+node mm.js -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" -m="xmrig-amd.exe --config=config-heavy.json" -m="xmrig-amd.exe --config=config-lite.json"
 ```
