@@ -350,12 +350,11 @@ function check_miners(smart_miners, miners, cb) {
         set_first_miner_user_pass(json);
         if ("params" in json && (json.params instanceof Object) && "algo" in json.params && (json.params.algo instanceof Array)) {
           json.params.algo.forEach(function (algo) {
-            if (!c.algos[algo]) {
-              log("Setting " + algo + " algo to '" + cmd + "' miner");
-              c.algos[algo] = cmd;
-              c.algos[algo.replace('cryptonight', 'cn')] = cmd;
-              c.algos[algo.replace('cn', 'cryptonight')] = cmd;
-            } else err("Algo " + algo + " is already set to '" + c.algos[algo] + "' miner");
+            if (c.algos[algo]) log("Setting " + algo + " algo from '" + c.algos[algo] + "' to '" + cmd + "' miner");
+            else log("Setting " + algo + " algo to '" + cmd + "' miner");
+            c.algos[algo] = cmd;
+            c.algos[algo.replace('cryptonight', 'cn')] = cmd;
+            c.algos[algo.replace('cn', 'cryptonight')] = cmd;
           });
         } else {
           err("Miner '" + cmd + "' does not report any algo and will be ignored");
@@ -379,12 +378,11 @@ function check_miners(smart_miners, miners, cb) {
       miner_login_cb = function(json) {
         clearTimeout(timeout);
         set_first_miner_user_pass(json);
-        if (!c.algos[algo]) {
-          log("Setting " + algo + " algo to '" + cmd + "' miner");
-          c.algos[algo] = cmd;
-          c.algos[algo.replace('cryptonight', 'cn')] = cmd;
-          c.algos[algo.replace('cn', 'cryptonight')] = cmd;
-        } else err("Algo " + algo + " is already set to '" + c.algos[algo] + "' miner");
+        if (c.algos[algo]) log("Setting " + algo + " algo from '" + c.algos[algo] + "' to '" + cmd + "' miner");
+        else log("Setting " + algo + " algo to '" + cmd + "' miner");
+        c.algos[algo] = cmd;
+        c.algos[algo.replace('cryptonight', 'cn')] = cmd;
+        c.algos[algo.replace('cn', 'cryptonight')] = cmd;
         miner_proc.on('close', (code) => { resolve(); });
         miner_proc.kill();
       };
