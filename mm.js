@@ -112,20 +112,19 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
     for (let i = 0; i < messages.length; i++) {
       let message = messages[i];
       if (message.trim() === '') continue;
-      let json;
       try {
-        json = JSON.parse(message);
+        const json = JSON.parse(message);
         if (c.is_debug) log("Pool message: " + JSON.stringify(json));
+        const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
+                           ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
+        if (is_new_job) {
+          if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
+        }
+        if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
+        else err("Ignoring pool message that does not contain job: " + JSON.stringify(json));
       } catch (e) {
         err("Can't parse message from the pool: " + message);
       }
-      const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
-                         ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
-      if (is_new_job) {
-        if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
-      }
-      if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
-      else err("Ignoring pool message that does not contain job: " + JSON.stringify(json));
     }
     pool_data_buff = incomplete_line;
     
@@ -155,19 +154,18 @@ let miner_server = net.createServer(function (miner_socket) {
     for (let i = 0; i < messages.length; i++) {
       let message = messages[i];
       if (message.trim() === '') continue;
-      let json;
       try {
-        json = JSON.parse(message);
+        const json = JSON.parse(message);
         if (c.is_debug) log("Miner message: " + JSON.stringify(json));
+        if ("method" in json && json.method === "login") {
+          miner_login_cb(json, miner_socket);
+        } else if (curr_pool_socket) {
+          curr_pool_socket.write(JSON.stringify(json) + "\n");
+        } else {
+          err("Can't write miner reply to the pool since its socket is closed");
+        }
       } catch (e) {
         err("Can't parse message from the miner: " + message);
-      }
-      if ("method" in json && json.method === "login") {
-        miner_login_cb(json, miner_socket);
-      } else if (curr_pool_socket) {
-        curr_pool_socket.write(JSON.stringify(json) + "\n");
-      } else {
-        err("Can't write miner reply to the pool since its socket is closed");
       }
     }
     miner_data_buff = incomplete_line;
