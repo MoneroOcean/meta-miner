@@ -20,15 +20,19 @@
 
 "use strict";
 
-// *** dependecies
+// *****************************************************************************
+// *** DEPENDECIES                                                           ***
+// *****************************************************************************
 
 const fs            = require('fs');
 const net           = require('net');
 const child_process = require('child_process');
 
-// *** consts
+// *****************************************************************************
+// *** CONSTS                                                                ***
+// *****************************************************************************
 
-const VERSION      = "v0.1";
+const VERSION      = "v0.2";
 const DEFAULT_ALGO = "cn/1";
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -46,7 +50,9 @@ const algo_perf_algo = {
   "cn-heavy": "cn-heavy/0",
 };
 
-// *** config
+// *****************************************************************************
+// *** CONFIG                                                                ***
+// *****************************************************************************
 
 let CONFIG_FILE = __dirname + "/mm.json";
 
@@ -68,7 +74,9 @@ let c = {
   is_debug: false
 };
 
-// *** working state
+// *****************************************************************************
+// *** WORKING STATE                                                         ***
+// *****************************************************************************
 
 let curr_miner_socket = null;
 let curr_pool_socket  = null;
@@ -80,7 +88,11 @@ let main_pool_check_timer = null;
 let miner_proc            = null;
 let miner_login_cb        = null;
 
-// *** functions
+// *****************************************************************************
+// *** FUNCTIONS                                                             ***
+// *****************************************************************************
+
+// *** Console/log output
 
 function log(msg) {
   console.log(">>> " + msg);
@@ -92,50 +104,16 @@ function err(msg) {
   if (c.log_file) fs.appendFileSync(c.log_file, "!!! " + msg + "\n");
 }
 
-function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
-  let pool_address_parts = c.pools[pool_num].split(/:/);
-
-  let pool_socket = new net.Socket();
-
-  pool_socket.connect(pool_address_parts[1], pool_address_parts[0], function () {
-    pool_socket.write('{"id":1,"jsonrpc": "2.0","method":"login","params":{"login":"' + c.user + '","pass":"' + c.pass + '","agent":"' + AGENT + '","algo":' + JSON.stringify(Object.keys(c.algos)) + ',"algo-perf":' + JSON.stringify(c.algo_perf) + '}}\n');
-  });
-
-  let is_pool_ok = false; 
-  let pool_data_buff = "";
-
-  pool_socket.on('data', function (msg) {
-    pool_data_buff += msg;
-    if (pool_data_buff.indexOf('\n') === -1) return;
-    let messages = pool_data_buff.split('\n');
-    let incomplete_line = pool_data_buff.slice(-1) === '\n' ? '' : messages.pop();
-    for (let i = 0; i < messages.length; i++) {
-      let message = messages[i];
-      if (message.trim() === '') continue;
-      try {
-        const json = JSON.parse(message);
-        if (c.is_debug) log("Pool message: " + JSON.stringify(json));
-        const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
-                           ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
-        if (is_new_job) {
-          if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
-        }
-        if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
-        else err("Ignoring pool message that does not contain job: " + JSON.stringify(json));
-      } catch (e) {
-        err("Can't parse message from the pool: " + message);
-      }
-    }
-    pool_data_buff = incomplete_line;
-    
-  });
-
-  pool_socket.on('error', function() {
-    err("Pool " + c.pools[pool_num] + " socket error");
-    pool_socket.destroy();
-    pool_err_cb();
-  });
+function print_all_messages(str) {
+  process.stdout.write(str);
+  if (c.log_file) fs.appendFileSync(c.log_file, str);
 }
+
+function print_messages(str) {
+  if (!c.is_quiet_mode) print_all_messages(str);
+}
+
+// *** Miner socket processing
 
 let miner_server = net.createServer(function (miner_socket) {
   if (curr_miner_socket) {
@@ -183,30 +161,7 @@ let miner_server = net.createServer(function (miner_socket) {
   });
 });
 
-function set_main_pool_check_timer() {
-  log("Will retry connection attempt to the main pool in 90 seconds");
-  return setTimeout(connect_pool, 90*1000, 0, pool_ok, pool_new_msg, set_main_pool_check_timer);
-}
-
-function pool_ok(pool_num, pool_socket) {
-  if (pool_num) {
-    if (!main_pool_check_timer) main_pool_check_timer = set_main_pool_check_timer();
-  } else {
-    if (main_pool_check_timer) {
-      log("Stopped main pool connection attemps since its connection was established");
-      clearTimeout(main_pool_check_timer);
-      main_pool_check_timer = null;
-    }
-  }
-  if (curr_pool_socket) {
-    log("Closing " + c.pools[curr_pool_num] + " pool socket");
-    curr_pool_socket.destroy();
-  }
-  log("Connected to " + c.pools[pool_num] + " pool");
-  if (!curr_pool_socket && curr_miner_socket) log("Pool <-> miner link was established due to new pool connection");
-  curr_pool_num = pool_num;
-  curr_pool_socket = pool_socket;
-}
+// *** Miner start helpers
 
 function start_miner_raw(exe, args, out_cb) {
    const cmd = exe + " " + args.join(" ");
@@ -229,19 +184,84 @@ function start_miner_raw(exe, args, out_cb) {
    return proc;
 }
 
-function print_all_messages(str) {
-  process.stdout.write(str);
-  if (c.log_file) fs.appendFileSync(c.log_file, str);
-}
-
-function print_messages(str) {
-  if (!c.is_quiet_mode) print_all_messages(str);
-}
-
 function start_miner(cmd, out_cb) {
    let args = cmd.match(/"[^"]+"|'[^']+'|\S+/g);
    let exe = args.shift();
    return start_miner_raw(exe, args, out_cb);
+}
+ 
+// *** Pool socket processing
+
+function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
+  let pool_address_parts = c.pools[pool_num].split(/:/);
+
+  let pool_socket = new net.Socket();
+
+  pool_socket.connect(pool_address_parts[1], pool_address_parts[0], function () {
+    pool_socket.write('{"id":1,"jsonrpc": "2.0","method":"login","params":{"login":"' + c.user + '","pass":"' + c.pass + '","agent":"' + AGENT + '","algo":' + JSON.stringify(Object.keys(c.algos)) + ',"algo-perf":' + JSON.stringify(c.algo_perf) + '}}\n');
+  });
+
+  let is_pool_ok = false; 
+  let pool_data_buff = "";
+
+  pool_socket.on('data', function (msg) {
+    pool_data_buff += msg;
+    if (pool_data_buff.indexOf('\n') === -1) return;
+    let messages = pool_data_buff.split('\n');
+    let incomplete_line = pool_data_buff.slice(-1) === '\n' ? '' : messages.pop();
+    for (let i = 0; i < messages.length; i++) {
+      let message = messages[i];
+      if (message.trim() === '') continue;
+      try {
+        const json = JSON.parse(message);
+        if (c.is_debug) log("Pool message: " + JSON.stringify(json));
+        const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
+                           ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
+        if (is_new_job) {
+          if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
+        }
+        if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
+        else err("Ignoring pool message that does not contain job: " + JSON.stringify(json));
+      } catch (e) {
+        err("Can't parse message from the pool: " + message);
+      }
+    }
+    pool_data_buff = incomplete_line;
+    
+  });
+
+  pool_socket.on('error', function() {
+    err("Pool " + c.pools[pool_num] + " socket error");
+    pool_socket.destroy();
+    pool_err_cb(pool_num);
+  });
+}
+           
+// *** connect_pool function callbacks
+
+function set_main_pool_check_timer() {
+  log("Will retry connection attempt to the main pool in 90 seconds");
+  main_pool_check_timer = setTimeout(connect_pool, 90*1000, 0, pool_ok, pool_new_msg, pool_err);
+}
+
+function pool_ok(pool_num, pool_socket) {
+  if (pool_num) {
+    if (!main_pool_check_timer) set_main_pool_check_timer();
+  } else {
+    if (main_pool_check_timer) {
+      log("Stopped main pool connection attemps since its connection was established");
+      clearTimeout(main_pool_check_timer);
+      main_pool_check_timer = null;
+    }
+  }
+  if (curr_pool_socket) {
+    log("Closing " + c.pools[curr_pool_num] + " pool socket");
+    curr_pool_socket.destroy();
+  }
+  log("Connected to " + c.pools[pool_num] + " pool");
+  if (!curr_pool_socket && curr_miner_socket) log("Pool <-> miner link was established due to new pool connection");
+  curr_pool_num = pool_num;
+  curr_pool_socket = pool_socket;
 }
 
 function pool_new_msg(is_new_job, json) {
@@ -284,10 +304,16 @@ function pool_new_msg(is_new_job, json) {
   if (curr_miner_socket) curr_miner_socket.write(JSON.stringify(json) + "\n"); 
 }
 
-function pool_err() {
+function pool_err(pool_num) {
+  if (pool_num === 0 && curr_pool_num) { // this is main pool attept error while we are on backup pool
+    if (!main_pool_check_timer) err("Unexpected main_pool_check_timer state in pool_err");
+    set_main_pool_check_timer();
+    return;
+  }
   if (curr_pool_socket && curr_miner_socket) err("Pool <-> miner link was broken due to pool socket error");
   curr_pool_socket = null;
   curr_pool_job1   = null;
+  if (curr_pool_num != pool_num) err("Unexpected pool_num in pool_err");
   if (++ curr_pool_num >= c.pools.length) {
     log("Waiting 60 seconds before trying to connect to the same pools once again");
     setTimeout(connect_pool, 60*1000, curr_pool_num = 0, pool_ok, pool_new_msg, pool_err);
@@ -296,25 +322,7 @@ function pool_err() {
   }
 }
 
-function print_help() {
-  console.log("Usage: mm.js [<config_file.json>] [options]");
-  console.log("Adding algo switching support to *any* stratum miner");
-  console.log("<config_file.json> is file name of config file to load before parsing options (mm.json by default)");
-  console.log("Config file and options should define at least one pool and miner:");
-  console.log("Options:");
-  console.log("\t--pool=<pool> (-p):            \t<pool> is in pool_address:pool_port format");
-  console.log("\t--port=<number>:               \tdefines port that will be used for miner connections (3333 by default)");
-  console.log("\t--user=<wallet> (-u):          \t<wallet> to use as pool user login (will be taken from the first miner otherwise)");
-  console.log("\t--pass=<miner_id>:             \t<miner_id> to use as pool pass login (will be taken from the first miner otherwise)");
-  console.log("\t--perf_<algo_class>=<hashrate> \tSets hashrate for perf <algo_class> that is: " + Object.keys(c.algo_perf).join(", "));
-  console.log("\t--miner=<command_line> (-m):   \t<command_line> to start smart miner that can report algo itself");
-  console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
-  console.log("\t--quiet (-q):                  \tdo not show miner output during configuration and also less messages");
-  console.log("\t--debug:                       \tshow pool and miner messages");
-  console.log("\t--log=<file_name>:             \t<file_name> of output log");
-  console.log("\t--no-config-save:              \tDo not save config file");
-  console.log("\t--help (-help,-h,-?):          \tPrints this help text");
-}
+// *** Miner execution checks
 
 function set_first_miner_user_pass(json) {
   if (c.user === null && "params" in json && (json.params instanceof Object) && "login" in json.params) {
@@ -393,16 +401,71 @@ function check_miners(smart_miners, miners, cb) {
   next_miner_check();
 }
 
-function load_config_file() {
-  if (fs.existsSync(CONFIG_FILE)) {
-    log("Loading " + CONFIG_FILE + " config file");
-    const c2 = require(CONFIG_FILE);
-    for (let x in c2) c[x] = c2[x];
-    return true;
-  } else {
-    err("Config file " + CONFIG_FILE + " does not exists");
-    return false;
+// *** Miner performance runs
+
+function do_miner_perf_runs(cb) {
+  let miner_perf_runs = [];
+  for (let algo_class in c.algo_perf) {
+    if (c.algo_perf[algo_class] || !(algo_perf_algo[algo_class] in c.algos)) continue;
+    miner_perf_runs.push(function(resolve) {
+      log("Checking miner performance for " + algo_class + " algo class");
+      const cmd = c.algos[algo_perf_algo[algo_class]];
+      let miner_proc = null;
+      let timeout = setTimeout(function () {
+        err("Can't find performance data in '" + cmd + "' miner output");
+        miner_proc.on('close', (code) => { resolve(); });
+        miner_proc.kill();
+      }, 5*60*1000);
+      miner_login_cb = function(json, miner_socket) {
+        miner_socket.write('{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"ff05feeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n');
+      };
+      miner_proc = start_miner(cmd, function(str) {
+        print_messages(str);
+        str = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
+        for (let i in hashrate_regexes) {
+          const hashrate_regex = hashrate_regexes[i];
+          const m = str.match(hashrate_regex);
+          if (m) {
+            const hashrate = parseFloat(m[1]);
+            log("Setting performance for " + algo_class + " algo class to " + hashrate);
+            c.algo_perf[algo_class] = hashrate;
+            miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
+            miner_proc.kill();
+            break;
+          }
+        }
+      });
+    });
   }
+
+  function next_miner_perf_run() {
+    if (miner_perf_runs.length === 0) return cb();
+    const miner_perf_run = miner_perf_runs.shift();
+    miner_perf_run(next_miner_perf_run);
+  }
+  next_miner_perf_run();
+}
+
+// *** Command line option handling
+
+function print_help() {
+  console.log("Usage: mm.js [<config_file.json>] [options]");
+  console.log("Adding algo switching support to *any* stratum miner");
+  console.log("<config_file.json> is file name of config file to load before parsing options (mm.json by default)");
+  console.log("Config file and options should define at least one pool and miner:");
+  console.log("Options:");
+  console.log("\t--pool=<pool> (-p):            \t<pool> is in pool_address:pool_port format");
+  console.log("\t--port=<number>:               \tdefines port that will be used for miner connections (3333 by default)");
+  console.log("\t--user=<wallet> (-u):          \t<wallet> to use as pool user login (will be taken from the first miner otherwise)");
+  console.log("\t--pass=<miner_id>:             \t<miner_id> to use as pool pass login (will be taken from the first miner otherwise)");
+  console.log("\t--perf_<algo_class>=<hashrate> \tSets hashrate for perf <algo_class> that is: " + Object.keys(c.algo_perf).join(", "));
+  console.log("\t--miner=<command_line> (-m):   \t<command_line> to start smart miner that can report algo itself");
+  console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
+  console.log("\t--quiet (-q):                  \tdo not show miner output during configuration and also less messages");
+  console.log("\t--debug:                       \tshow pool and miner messages");
+  console.log("\t--log=<file_name>:             \t<file_name> of output log");
+  console.log("\t--no-config-save:              \tDo not save config file");
+  console.log("\t--help (-help,-h,-?):          \tPrints this help text");
 }
 
 function parse_argv(cb) {
@@ -481,59 +544,18 @@ function parse_argv(cb) {
   });
 }
 
-function check_main_stuff() {
-  if (c.pools.length == 0) {
-    err("You should specify at least one pool");
-    process.exit(1);
-  }
+// *** Load/save config file
 
-  if (Object.keys(c.algos).length == 0) {
-    err("You should specify at least one working miner");
-    process.exit(1);
+function load_config_file() {
+  if (fs.existsSync(CONFIG_FILE)) {
+    log("Loading " + CONFIG_FILE + " config file");
+    const c2 = require(CONFIG_FILE);
+    for (let x in c2) c[x] = c2[x];
+    return true;
+  } else {
+    err("Config file " + CONFIG_FILE + " does not exists");
+    return false;
   }
-}
-
-function do_miner_perf_runs(cb) {
-  let miner_perf_runs = [];
-  for (let algo_class in c.algo_perf) {
-    if (c.algo_perf[algo_class] || !(algo_perf_algo[algo_class] in c.algos)) continue;
-    miner_perf_runs.push(function(resolve) {
-      log("Checking miner performance for " + algo_class + " algo class");
-      const cmd = c.algos[algo_perf_algo[algo_class]];
-      let miner_proc = null;
-      let timeout = setTimeout(function () {
-        err("Can't find performance data in '" + cmd + "' miner output");
-        miner_proc.on('close', (code) => { resolve(); });
-        miner_proc.kill();
-      }, 5*60*1000);
-      miner_login_cb = function(json, miner_socket) {
-        miner_socket.write('{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"ff05feeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n');
-      };
-      miner_proc = start_miner(cmd, function(str) {
-        print_messages(str);
-        str = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
-        for (let i in hashrate_regexes) {
-          const hashrate_regex = hashrate_regexes[i];
-          const m = str.match(hashrate_regex);
-          if (m) {
-            const hashrate = parseFloat(m[1]);
-            log("Setting performance for " + algo_class + " algo class to " + hashrate);
-            c.algo_perf[algo_class] = hashrate;
-            miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
-            miner_proc.kill();
-            break;
-          }
-        }
-      });
-    });
-  }
-
-  function next_miner_perf_run() {
-    if (miner_perf_runs.length === 0) return cb();
-    const miner_perf_run = miner_perf_runs.shift();
-    miner_perf_run(next_miner_perf_run);
-  }
-  next_miner_perf_run();
 }
 
 function print_params() {
@@ -546,7 +568,9 @@ function print_params() {
   if (!c.is_no_config_save) fs.writeFile(CONFIG_FILE, str, function(err) { if (err) err("Error saving " + CONFIG_FILE + " file"); });
 }
 
-// *** main program
+// *****************************************************************************
+// *** MAIN PROGRAM                                                          ***
+// *****************************************************************************
 
 function main() {
   print_params();
@@ -567,6 +591,15 @@ function main() {
 log("Meta Miner " + VERSION);
 
 parse_argv(function() {
-  check_main_stuff();
+  if (c.pools.length == 0) {
+    err("You should specify at least one pool");
+    process.exit(1);
+  }
+
+  if (Object.keys(c.algos).length == 0) {
+    err("You should specify at least one working miner");
+    process.exit(1);
+  }
+
   do_miner_perf_runs(main);
 });
