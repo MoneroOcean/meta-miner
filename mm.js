@@ -33,7 +33,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v0.4";
+const VERSION      = "v0.5";
 const DEFAULT_ALGO = "cn/1";
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -55,7 +55,7 @@ const algo_perf_algo = {
 // *** CONFIG                                                                ***
 // *****************************************************************************
 
-let CONFIG_FILE = __dirname + "/mm.json";
+let CONFIG_FILE = process.cwd() + "/mm.json";
 
 let c = {
   miner_port: 3333,
