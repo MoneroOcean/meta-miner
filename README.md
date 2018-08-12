@@ -27,6 +27,38 @@ Options:
 
 Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-algorithm-names-and-variants for list of possible algo names.
 
+## Sample mm.json
+
+```
+{
+ "miner_port": 3333,
+ "pools": [
+  "gulf.moneroocean.stream:10001"
+ ],
+ "algos": {
+  "cn/1": "./xmrig --config=config.json",
+  "cn/xtl": "./xmrig --config=config.json",
+  "cn/msr": "./xmrig --config=config.json",
+  "cn/xao": "./xmrig --config=config.json",
+  "cn/rto": "./xmrig --config=config.json",
+  "cn-heavy/0": "./xmrig --config=config-heavy.json",
+  "cn-heavy/tube": "./xmrig --config=config-heavy.json",
+  "cn-heavy/xhv": "./xmrig --config=config-heavy.json",
+  "cn-lite/1": "./xmrig --config=config-lite.json"
+ },
+ "algo_perf": {
+  "cn": 30.2,
+  "cn-fast": 57.6,
+  "cn-lite": 109.1,
+  "cn-heavy": 27
+ },
+ "user": "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1",
+ "pass": "x",
+ "log_file": null,
+ "watchdog": 600
+}
+```
+
 ## General configuration guidelines
 
 * Configure your miners to connect to the single localhost:3333 (non SSL/TLS) pool.
