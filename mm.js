@@ -532,7 +532,7 @@ function parse_argv(cb) {
     } else if (m = val.match(/^(?:--pool|-p)=(.+)$/)) {
       if (m[1].split(/:/).length == 2) {
         if (is_verbose_mode) log("Added pool '" + m[1] + "' to the list of pools");
-        if (!c.pools.includes(m[1])) c.pools.push(m[1]);
+        if (c.pools.indexOf(m[1]) == -1) c.pools.push(m[1]);
       } else {
         err("Pool in invalid format '" + m[1] + "' is ignored, use pool_address:pool_port format");
       }
