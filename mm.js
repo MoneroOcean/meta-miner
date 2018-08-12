@@ -38,9 +38,9 @@ const DEFAULT_ALGO = "cn/1";
 const AGENT        = "Meta Miner " + VERSION;
 
 const hashrate_regexes = [
-  /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)/, // for old xmrig
-  /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)/,  // for new xmrig
-  /Totals \(ALL\):\s+[\d\.]+\s+([1-9][\d\.]*)/,             // xmr-stak
+  /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)/,       // for old xmrig
+  /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)/,        // for new xmrig
+  /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)/, // xmr-stak
 ];
 
 // basic algo for each algo class that is used for performance measurements
@@ -436,7 +436,7 @@ function do_miner_perf_runs(cb) {
         miner_proc.kill();
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
-        miner_socket.write('{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"ff05feeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n');
+        miner_socket.write('{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n');
       };
       miner_proc = start_miner(cmd, function(str) {
         print_messages(str);
@@ -548,7 +548,7 @@ function parse_argv(cb) {
         if (is_verbose_mode) log("Setting performance for " + m[1] + " algo class to " + hashrate);
         c.algo_perf[m[1]] = hashrate;
       } else {
-        err("Ignoring unknown algo class " + m[1]);
+        err("Ignoring unknown algo class " + m[1] + ". Please use one of these: " + Object.keys(c.algo_perf).join(", "));
       }
     } else if (m = val.match(/^(?:--pass)=(.+)$/)) {
       if (is_verbose_mode) log("Setting pool pass to '" + m[1] + "'");
