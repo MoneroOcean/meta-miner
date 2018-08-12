@@ -108,11 +108,11 @@ cp cpu.txt cpu-heavy.txt
 
 * Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.7.3-beta/xmrig-amd-2.7.3-beta-win64.zip).
 
-* Get mm.exe or mm.js (with nodejs installed):
+* Place mm.exe or mm.js (with nodejs installed) into unpacked xmr-stak directory:
 
-	* Download and unpack the latest mm.zip from https://github.com/MoneroOcean/meta-miner/releases into unpacked xmr-stak directory.
+	* Download and unpack the latest mm.zip from https://github.com/MoneroOcean/meta-miner/releases
 
-	* Or download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator and download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmr-stak directory.
+	* Or download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator and download and unpack https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js
 
 * Modify config.json file in xmrig-amd directory this way and adjust it for the best threads performance (out of scope of this guide):
 
@@ -133,11 +133,11 @@ mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" 
 
 * Download and unpack the lastest xmr-stak (https://github.com/fireice-uk/xmr-stak/releases/download/2.4.7/xmr-stak-win64.zip).
 
-* Get mm.exe or mm.js (with nodejs installed):
+* Place mm.exe or mm.js (with nodejs installed) into unpacked xmr-stak directory:
 
-	* Download and unpack the latest mm.zip from https://github.com/MoneroOcean/meta-miner/releases into unpacked xmr-stak directory.
+	* Download and unpack the latest mm.zip from https://github.com/MoneroOcean/meta-miner/releases
 
-	* Or download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator and download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmr-stak directory.
+	* Or download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator and download and unpack https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js
 
 * Configure xmr-stak this way (put your Monero address):
 
