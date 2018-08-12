@@ -106,11 +106,13 @@ cp cpu.txt cpu-heavy.txt
 
 ## Usage example with xmrig-amd on Windows
 
-* Download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator.
-
 * Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.7.3-beta/xmrig-amd-2.7.3-beta-win64.zip).
 
-* Download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmrig-amd directory.
+* Get mm.exe or mm.js (with nodejs installed):
+
+	* Download and unpack the latest mm.zip from https://github.com/MoneroOcean/meta-miner/releases into unpacked xmr-stak directory.
+
+	* Or download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator and download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmr-stak directory.
 
 * Modify config.json file in xmrig-amd directory this way and adjust it for the best threads performance (out of scope of this guide):
 
@@ -121,19 +123,21 @@ cp cpu.txt cpu-heavy.txt
 
 * Copy config.json to config-heavy.json, put "algo" to "cryptonight-heavy/0" in config-heavy.json and adjust it for the best threads performance (out of scope of this guide).
 
-* Run Meta Miner:
+* Run Meta Miner (or use "node mm.js" instead of mm.exe):
 
 ```shell
-node mm.js -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" -m="xmrig-amd.exe --config=config-heavy.json" -m="xmrig-amd.exe --config=config-lite.json"
+mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" -m="xmrig-amd.exe --config=config-heavy.json" -m="xmrig-amd.exe --config=config-lite.json"
 ```
 
 ## Usage example with xmr-stak (AMD only) on Windows
 
-* Download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator.
-
 * Download and unpack the lastest xmr-stak (https://github.com/fireice-uk/xmr-stak/releases/download/2.4.7/xmr-stak-win64.zip).
 
-* Download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmr-stak directory.
+* Get mm.exe or mm.js (with nodejs installed):
+
+	* Download and unpack the latest mm.zip from https://github.com/MoneroOcean/meta-miner/releases into unpacked xmr-stak directory.
+
+	* Or download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator and download and place https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js into unpacked xmr-stak directory.
 
 * Configure xmr-stak this way (put your Monero address):
 
@@ -151,13 +155,13 @@ localhost:3333
 
 * Copy amd.txt to amd-lite.txt and amd-heavy.txt and adjust all of them for the best threads performance (out of scope of this guide).
 
-* Run Meta Miner:
+* Run Meta Miner (or use "node mm.js" instead of mm.exe):
 
 ```shell
-node mm.js -p=gulf.moneroocean.stream:10001 --cn/1="xmr-stak.exe --noCPU --currency cryptonight_v7 --amd amd.txt" --cn/msr="xmr-stak.exe --noCPU --currency cryptonight_masari --amd amd.txt" --cn-lite/1="xmr-stak.exe --noCPU --currency cryptonight_lite_v7 --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --noCPU --currency cryptonight_heavy --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --noCPU --currency cryptonight_haven --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --noCPU --currency cryptonight_bittube2 --amd amd-heavy.txt"
+mm.exe -p=gulf.moneroocean.stream:10001 --cn/1="xmr-stak.exe --noCPU --currency cryptonight_v7 --amd amd.txt" --cn/msr="xmr-stak.exe --noCPU --currency cryptonight_masari --amd amd.txt" --cn-lite/1="xmr-stak.exe --noCPU --currency cryptonight_lite_v7 --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --noCPU --currency cryptonight_heavy --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --noCPU --currency cryptonight_haven --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --noCPU --currency cryptonight_bittube2 --amd amd-heavy.txt"
 ```
 * To run Meta Miner for xmr-stak CPU/GPU use this command:
 
 ```shell
-node mm.js -p=gulf.moneroocean.stream:10001 --cn/1="xmr-stak.exe --currency cryptonight_v7 --cpu cpu.txt --amd amd.txt" --cn/msr="xmr-stak.exe --currency cryptonight_masari --cpu cpu.txt --amd amd.txt" --cn-lite/1="xmr-stak.exe --currency cryptonight_lite_v7 --cpu cpu-lite.txt --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --currency cryptonight_heavy --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --currency cryptonight_haven --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --currency cryptonight_bittube2 --cpu cpu-heavy.txt --amd amd-heavy.txt"
+mm.exe -p=gulf.moneroocean.stream:10001 --cn/1="xmr-stak.exe --currency cryptonight_v7 --cpu cpu.txt --amd amd.txt" --cn/msr="xmr-stak.exe --currency cryptonight_masari --cpu cpu.txt --amd amd.txt" --cn-lite/1="xmr-stak.exe --currency cryptonight_lite_v7 --cpu cpu-lite.txt --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --currency cryptonight_heavy --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --currency cryptonight_haven --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --currency cryptonight_bittube2 --cpu cpu-heavy.txt --amd amd-heavy.txt"
 ```
