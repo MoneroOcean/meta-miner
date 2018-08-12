@@ -100,7 +100,7 @@ mm.exe -p=gulf.moneroocean.stream:10001 --cn/1="xmr-stak.exe --currency cryptoni
 
 ## Usage examples on Linux (Ubuntu 16.04)
 
-Get node and Meta Miner (mm.js):
+Get node and Meta Miner (mm.js) in the miner directory:
 
 ```shell
 sudo apt-get update
