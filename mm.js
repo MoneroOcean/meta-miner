@@ -208,7 +208,7 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
   let m = port.match(/^(?:ssl|tls)(\d+)$/);
   let is_tls = false;
   if (m) { is_tls = true; port = m[1]; }
-  let pool_socket = (is_tls ? tls : net).connect(port, host, { rejectUnauthorized: false });
+  let pool_socket = is_tls ? tls.connect(port, host, { rejectUnauthorized: false }) : net.connect(port, host);
 
   pool_socket.on('connect', function () {
     pool_socket.write('{"id":1,"jsonrpc": "2.0","method":"login","params":{"login":"' + c.user + '","pass":"' + c.pass + '","agent":"' + AGENT + '","algo":' + JSON.stringify(Object.keys(c.algos)) + ',"algo-perf":' + JSON.stringify(c.algo_perf) + '}}\n');
@@ -241,6 +241,14 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
     }
     pool_data_buff = incomplete_line;
     
+  });
+
+  pool_socket.on('end', function() {
+    pool_socket.destroy();
+    if (!is_pool_ok) {
+      err("Pool (" + c.pools[pool_num] + ") socket closed before sending first job");
+      pool_err_cb(pool_num);
+    } else if (is_verbose_mode) log("Pool (" + c.pools[pool_num] + ") socket closed");
   });
 
   pool_socket.on('error', function() {
