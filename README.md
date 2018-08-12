@@ -17,6 +17,7 @@ Options:
         --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
         --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
         --quiet (-q):                   do not show miner output during configuration and also less messages
+        --verbose (-v):                 show more messages
         --debug:                        show pool and miner messages
         --log=<file_name>:              <file_name> of output log
         --no-config-save:               Do not save config file
