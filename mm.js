@@ -26,20 +26,21 @@
 
 const fs            = require('fs');
 const net           = require('net');
+const tls           = require('tls');
 const child_process = require('child_process');
 
 // *****************************************************************************
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v0.3";
+const VERSION      = "v0.4";
 const DEFAULT_ALGO = "cn/1";
 const AGENT        = "Meta Miner " + VERSION;
 
 const hashrate_regexes = [
   /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)/, // for old xmrig
   /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)/,  // for new xmrig
-  /Totals \(ALL\):\s+([\d\.]+)/,                       // xmr-stak
+  /Totals \(ALL\):\s+[\d\.]+\s+([\d\.]+)/,             // xmr-stak
 ];
 
 // basic algo for each algo class that is used for performance measurements
@@ -68,7 +69,8 @@ let c = {
   },
   user: null,
   pass: null,
-  log_file: null
+  log_file: null,
+  watchdog: 600
 };
 
 let is_quiet_mode     = false;
@@ -86,9 +88,10 @@ let curr_pool_job1    = null;
 let curr_miner        = null;
 let curr_pool_num     = 0;
 
-let main_pool_check_timer = null;
-let miner_proc            = null;
-let miner_login_cb        = null;
+let main_pool_check_timer   = null;
+let miner_proc              = null;
+let miner_login_cb          = null;
+let miner_last_message_time = null;
 
 // *****************************************************************************
 // *** FUNCTIONS                                                             ***
@@ -144,6 +147,7 @@ let miner_server = net.createServer(function (miner_socket) {
         } else {
           err("Can't write miner reply to the pool since its socket is closed");
         }
+        miner_last_message_time = Date.now();
       } catch (e) {
         err("Can't parse message from the miner: " + message);
       }
@@ -199,9 +203,14 @@ function start_miner(cmd, out_cb) {
 function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
   let pool_address_parts = c.pools[pool_num].split(/:/);
 
-  let pool_socket = new net.Socket();
+  const host = pool_address_parts[0];
+  let   port = pool_address_parts[1];
+  let m = port.match(/^(?:ssl|tls)(\d+)$/);
+  let is_tls = false;
+  if (m) { is_tls = true; port = m[1]; }
+  let pool_socket = (is_tls ? tls : net).connect(port, host, { rejectUnauthorized: false });
 
-  pool_socket.connect(pool_address_parts[1], pool_address_parts[0], function () {
+  pool_socket.on('connect', function () {
     pool_socket.write('{"id":1,"jsonrpc": "2.0","method":"login","params":{"login":"' + c.user + '","pass":"' + c.pass + '","agent":"' + AGENT + '","algo":' + JSON.stringify(Object.keys(c.algos)) + ',"algo-perf":' + JSON.stringify(c.algo_perf) + '}}\n');
   });
 
@@ -268,6 +277,16 @@ function pool_ok(pool_num, pool_socket) {
   curr_pool_socket = pool_socket;
 }
 
+function replace_miner(next_miner) {
+  if (miner_proc) {
+    if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
+    miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
+    miner_proc.kill();
+  } else {
+    miner_proc = start_miner(next_miner, print_all_messages);
+  }
+}
+
 function pool_new_msg(is_new_job, json) {
   if (is_new_job) {
     let next_algo = DEFAULT_ALGO;
@@ -285,14 +304,7 @@ function pool_new_msg(is_new_job, json) {
       }
       curr_miner_socket = null;
       if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
-      if (miner_proc) {
-        if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
-        miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
-        miner_proc.kill();
-      } else {
-        miner_proc = start_miner(next_miner, print_all_messages);
-      }
-      curr_miner = next_miner;
+      replace_miner(curr_miner = next_miner);
     }
 
     if ("params" in json) {
@@ -468,6 +480,7 @@ function print_help() {
   console.log("\t--perf_<algo_class>=<hashrate> \tSets hashrate for perf <algo_class> that is: " + Object.keys(c.algo_perf).join(", "));
   console.log("\t--miner=<command_line> (-m):   \t<command_line> to start smart miner that can report algo itself");
   console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
+  console.log("\t--watchdog=<seconds> (-w):     \trestart miner if is does not submit work for <seconds> (600 by default, 0 to disable)");
   console.log("\t--quiet (-q):                  \tdo not show miner output during configuration and also less messages");
   console.log("\t--verbose (-v):                \tshow more messages");
   console.log("\t--debug:                       \tshow pool and miner messages");
@@ -510,13 +523,16 @@ function parse_argv(cb) {
       is_debug = true;
     } else if (m = val.match(/^--no-config-save$/)) {
       is_no_config_save = true;
-    } else if (m = val.match(/^(?:--log)=(.+)$/)) {
+    } else if (m = val.match(/^--log=(.+)$/)) {
       if (is_verbose_mode) log("Setting log file name to " + m[1]);
       c.log_file = m[1];
+    } else if (m = val.match(/^(?:--watchdog|w)=(.+)$/)) {
+      if (is_verbose_mode) log("Setting watchdog timeout to " + (m[1] ? m[1] : "disabled"));
+      c.watchdog = m[1];
     } else if (m = val.match(/^(?:--pool|-p)=(.+)$/)) {
       if (m[1].split(/:/).length == 2) {
         if (is_verbose_mode) log("Added pool '" + m[1] + "' to the list of pools");
-        c.pools.push(m[1]);
+        if (!c.pools.includes(m[1])) c.pools.push(m[1]);
       } else {
         err("Pool in invalid format '" + m[1] + "' is ignored, use pool_address:pool_port format");
       }
@@ -598,6 +614,18 @@ function main() {
       err("No pool (" + c.pools[curr_pool_num] + ") job to send to the miner!");
     }
   };
+
+  if (c.watchdog) {
+    if (is_verbose_mode) log("Starting miner watchdog timer");
+    setInterval(function () {
+      if (!curr_pool_socket || !curr_miner_socket) return;
+      const miner_idle_time = (Date.now() - miner_last_message_time) / 1000;
+      if (miner_idle_time > c.watchdog) {
+        err("No results from miner for more than " + c.watchdog + " seconds. Restarting it...");
+        replace_miner(curr_miner);
+      }
+    }, 60*1000);
+  }
 
   connect_pool(curr_pool_num = 0, pool_ok, pool_new_msg, pool_err);
 };
