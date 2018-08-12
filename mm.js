@@ -473,7 +473,7 @@ function print_help() {
   console.log("<config_file.json> is file name of config file to load before parsing options (mm.json by default)");
   console.log("Config file and options should define at least one pool and miner:");
   console.log("Options:");
-  console.log("\t--pool=<pool> (-p):            \t<pool> is in pool_address:pool_port format");
+  console.log("\t--pool=<pool> (-p):            \t<pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>");
   console.log("\t--port=<number>:               \tdefines port that will be used for miner connections (3333 by default)");
   console.log("\t--user=<wallet> (-u):          \t<wallet> to use as pool user login (will be taken from the first miner otherwise)");
   console.log("\t--pass=<miner_id>:             \t<miner_id> to use as pool pass login (will be taken from the first miner otherwise)");
