@@ -32,7 +32,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v0.2";
+const VERSION      = "v0.3";
 const DEFAULT_ALGO = "cn/1";
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -68,11 +68,13 @@ let c = {
   },
   user: null,
   pass: null,
-  log_file: null,
-  is_quiet_mode: false,
-  is_no_config_save: false,
-  is_debug: false
+  log_file: null
 };
+
+let is_quiet_mode     = false;
+let is_verbose_mode   = false;
+let is_no_config_save = false;
+let is_debug          = false;
 
 // *****************************************************************************
 // *** WORKING STATE                                                         ***
@@ -110,17 +112,17 @@ function print_all_messages(str) {
 }
 
 function print_messages(str) {
-  if (!c.is_quiet_mode) print_all_messages(str);
+  if (!is_quiet_mode) print_all_messages(str);
 }
 
 // *** Miner socket processing
 
 let miner_server = net.createServer(function (miner_socket) {
   if (curr_miner_socket) {
-    err("Miner server on " + c.miner_port + " port is already connected");
+    err("Miner server on " + c.miner_port + " port is already connected (please make sure you do not have other miner running)");
     return;
   }
-  if (!c.is_quiet_mode) log("Miner server on " + c.miner_port + " port connected from " + miner_socket.remoteAddress);
+  if (is_verbose_mode) log("Miner server on " + c.miner_port + " port connected from " + miner_socket.remoteAddress);
 
   let miner_data_buff = "";
 
@@ -134,7 +136,7 @@ let miner_server = net.createServer(function (miner_socket) {
       if (message.trim() === '') continue;
       try {
         const json = JSON.parse(message);
-        if (c.is_debug) log("Miner message: " + JSON.stringify(json));
+        if (is_debug) log("Miner message: " + JSON.stringify(json));
         if ("method" in json && json.method === "login") {
           miner_login_cb(json, miner_socket);
         } else if (curr_pool_socket) {
@@ -149,13 +151,13 @@ let miner_server = net.createServer(function (miner_socket) {
     miner_data_buff = incomplete_line;
   });
   miner_socket.on('end', function() {
-    if (!c.is_quiet_mode) log("Miner socket was closed");
-    if (curr_pool_socket && curr_miner_socket) err("Pool <-> miner link was broken due to closed miner socket");
+    if (is_verbose_mode) log("Miner socket was closed");
+    if (curr_pool_socket && curr_miner_socket) err("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was broken due to closed miner socket");
     curr_miner_socket = null;
   });
   miner_socket.on('error', function() {
     err("Miner socket error");
-    if (curr_pool_socket && curr_miner_socket) err("Pool <-> miner link was broken due to miner socket error");
+    if (curr_pool_socket && curr_miner_socket) err("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was broken due to miner socket error");
     miner_socket.destroy();
     curr_miner_socket = null;
   });
@@ -165,7 +167,7 @@ let miner_server = net.createServer(function (miner_socket) {
 
 function start_miner_raw(exe, args, out_cb) {
    const cmd = exe + " " + args.join(" ");
-   log("Starting miner: " + cmd);
+   if (!is_quiet_mode) log("Starting miner: " + cmd);
    let proc = child_process.spawn(exe, args, {});
 
    proc.stdout.on('data', (data) => {
@@ -175,8 +177,10 @@ function start_miner_raw(exe, args, out_cb) {
      if (out_cb) out_cb(`${data}`);
    });
    proc.on('close', (code) => {
-     if (code) err("Miner '" + cmd + "' exited with nonzero code " + code);
-     else if (!c.is_quiet_mode) log("Miner '" + cmd + "' exited with zero code");
+     if (is_verbose_mode) {
+       if (code) err("Miner '" + cmd + "' exited with nonzero code " + code);
+       else log("Miner '" + cmd + "' exited with zero code");
+     }
    });
    proc.on('error', (error) => {
      err("Failed to start '" + cmd + "' miner: " + error);
@@ -214,16 +218,16 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
       if (message.trim() === '') continue;
       try {
         const json = JSON.parse(message);
-        if (c.is_debug) log("Pool message: " + JSON.stringify(json));
+        if (is_debug) log("Pool message: " + JSON.stringify(json));
         const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
                            ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
         if (is_new_job) {
           if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
         }
         if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
-        else err("Ignoring pool message that does not contain job: " + JSON.stringify(json));
+        else err("Ignoring pool (" + c.pools[pool_num] + ") message that does not contain job: " + JSON.stringify(json));
       } catch (e) {
-        err("Can't parse message from the pool: " + message);
+        err("Can't parse message from the pool (" + c.pools[pool_num] + "): " + message);
       }
     }
     pool_data_buff = incomplete_line;
@@ -231,7 +235,7 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
   });
 
   pool_socket.on('error', function() {
-    err("Pool " + c.pools[pool_num] + " socket error");
+    err("Pool (" + c.pools[pool_num] + ") socket error");
     pool_socket.destroy();
     pool_err_cb(pool_num);
   });
@@ -240,7 +244,7 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
 // *** connect_pool function callbacks
 
 function set_main_pool_check_timer() {
-  log("Will retry connection attempt to the main pool in 90 seconds");
+  if (is_verbose_mode) log("Will retry connection attempt to the main pool in 90 seconds");
   main_pool_check_timer = setTimeout(connect_pool, 90*1000, 0, pool_ok, pool_new_msg, pool_err);
 }
 
@@ -249,17 +253,17 @@ function pool_ok(pool_num, pool_socket) {
     if (!main_pool_check_timer) set_main_pool_check_timer();
   } else {
     if (main_pool_check_timer) {
-      log("Stopped main pool connection attemps since its connection was established");
+      if (is_verbose_mode) log("Stopped main pool connection attemps since its connection was established");
       clearTimeout(main_pool_check_timer);
       main_pool_check_timer = null;
     }
   }
   if (curr_pool_socket) {
-    log("Closing " + c.pools[curr_pool_num] + " pool socket");
+    if (is_verbose_mode) log("Closing " + c.pools[curr_pool_num] + " pool socket");
     curr_pool_socket.destroy();
   }
-  log("Connected to " + c.pools[pool_num] + " pool");
-  if (!curr_pool_socket && curr_miner_socket) log("Pool <-> miner link was established due to new pool connection");
+  if (is_verbose_mode) log("Connected to " + c.pools[pool_num] + " pool");
+  if (!curr_pool_socket && curr_miner_socket) log("Pool (" + c.pools[pool_num] + ") <-> miner link was established due to new pool connection");
   curr_pool_num = pool_num;
   curr_pool_socket = pool_socket;
 }
@@ -270,18 +274,19 @@ function pool_new_msg(is_new_job, json) {
     if ("params" in json && "algo" in json.params) next_algo = json.params.algo;
     else if ("algo" in json.result.job) next_algo = json.result.job.algo;
     if (!(next_algo in c.algos)) {
-      err("Ignoring job with unknown algo " + next_algo + " sent by the pool");
+      err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
       return;
     }
     const next_miner = c.algos[next_algo];
     if (!curr_miner || curr_miner != next_miner) {
       if (curr_miner && curr_miner_socket == null) {
-        err("Ignoring job wit new algo since we still waiting for new miner to start");
+        err("Ignoring job with new algo " + next_algo + " from the pool (" + c.pools[curr_pool_num] + ") since we still waiting for new miner to start");
         return;
       }
       curr_miner_socket = null;
+      if (!is_quiet_mode) log("Changing miner to support new " + next_algo + " algo");
       if (miner_proc) {
-        log("Stopping '" + curr_miner + "' miner");
+        if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
         miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
         miner_proc.kill();
       } else {
@@ -294,7 +299,7 @@ function pool_new_msg(is_new_job, json) {
       if (curr_pool_job1) {
         curr_pool_job1.result.job = json.params;
       } else {
-        err("Can not update current pool job since first job is missing");
+        err("[INTERNAL ERROR] Can not update pool (" + c.pools[pool_num] + ") job since its first job is missing");
       }
     } else {
       curr_pool_job1 = json;
@@ -306,16 +311,16 @@ function pool_new_msg(is_new_job, json) {
 
 function pool_err(pool_num) {
   if (pool_num === 0 && curr_pool_num) { // this is main pool attept error while we are on backup pool
-    if (!main_pool_check_timer) err("Unexpected main_pool_check_timer state in pool_err");
+    if (!main_pool_check_timer) err("[INTERNAL ERROR] Unexpected main_pool_check_timer state in pool_err");
     set_main_pool_check_timer();
     return;
   }
-  if (curr_pool_socket && curr_miner_socket) err("Pool <-> miner link was broken due to pool socket error");
+  if (curr_pool_num != pool_num) err("[INTERNAL ERROR] Unexpected pool_num in pool_err");
+  if (curr_pool_socket && curr_miner_socket) err("Pool (" + c.pools[pool_num] + ") <-> miner link was broken due to pool socket error");
   curr_pool_socket = null;
   curr_pool_job1   = null;
-  if (curr_pool_num != pool_num) err("Unexpected pool_num in pool_err");
   if (++ curr_pool_num >= c.pools.length) {
-    log("Waiting 60 seconds before trying to connect to the same pools once again");
+    if (is_verbose_mode) log("Waiting 60 seconds before trying to connect to the same pools once again");
     setTimeout(connect_pool, 60*1000, curr_pool_num = 0, pool_ok, pool_new_msg, pool_err);
   } else {
     connect_pool(curr_pool_num, pool_ok, pool_new_msg, pool_err);
@@ -327,11 +332,11 @@ function pool_err(pool_num) {
 function set_first_miner_user_pass(json) {
   if (c.user === null && "params" in json && (json.params instanceof Object) && "login" in json.params) {
     c.user = json.params.login;
-    log("Setting pool user to '" + c.user + "'");
+    if (is_verbose_mode) log("Setting pool user to '" + c.user + "'");
   }
   if (c.pass === null && "params" in json && (json.params instanceof Object) && "pass" in json.params) {
     c.pass = json.params.pass;
-    log("Setting pool pass to '" + c.pass + "'");
+    if (is_verbose_mode) log("Setting pool pass to '" + c.pass + "'");
   }
 }
 
@@ -350,8 +355,10 @@ function check_miners(smart_miners, miners, cb) {
         set_first_miner_user_pass(json);
         if ("params" in json && (json.params instanceof Object) && "algo" in json.params && (json.params.algo instanceof Array)) {
           json.params.algo.forEach(function (algo) {
-            if (c.algos[algo]) log("Setting " + algo + " algo from '" + c.algos[algo] + "' to '" + cmd + "' miner");
-            else log("Setting " + algo + " algo to '" + cmd + "' miner");
+            if (is_verbose_mode) {
+              if (c.algos[algo]) log("Setting " + algo + " algo from '" + c.algos[algo] + "' to '" + cmd + "' miner");
+              else log("Setting " + algo + " algo to '" + cmd + "' miner");
+            }
             c.algos[algo] = cmd;
             c.algos[algo.replace('cryptonight', 'cn')] = cmd;
             c.algos[algo.replace('cn', 'cryptonight')] = cmd;
@@ -378,8 +385,10 @@ function check_miners(smart_miners, miners, cb) {
       miner_login_cb = function(json) {
         clearTimeout(timeout);
         set_first_miner_user_pass(json);
-        if (c.algos[algo]) log("Setting " + algo + " algo from '" + c.algos[algo] + "' to '" + cmd + "' miner");
-        else log("Setting " + algo + " algo to '" + cmd + "' miner");
+        if (is_verbose_mode) {
+          if (c.algos[algo]) log("Setting " + algo + " algo from '" + c.algos[algo] + "' to '" + cmd + "' miner");
+          else log("Setting " + algo + " algo to '" + cmd + "' miner");
+        }
         c.algos[algo] = cmd;
         c.algos[algo.replace('cryptonight', 'cn')] = cmd;
         c.algos[algo.replace('cn', 'cryptonight')] = cmd;
@@ -390,7 +399,7 @@ function check_miners(smart_miners, miners, cb) {
     });
   }
 
-  log("Checking miner configurations (make sure they all configured to connect to localhost:" + c.miner_port + " pool)");
+  if (!is_quiet_mode && check_miners.length) log("Checking miner configurations (make sure they all configured to connect to localhost:" + c.miner_port + " pool)");
   function next_miner_check() {
     if (check_miners.length === 0) return cb();
     const check_miner = check_miners.shift();
@@ -460,6 +469,7 @@ function print_help() {
   console.log("\t--miner=<command_line> (-m):   \t<command_line> to start smart miner that can report algo itself");
   console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
   console.log("\t--quiet (-q):                  \tdo not show miner output during configuration and also less messages");
+  console.log("\t--verbose (-v):                \tshow more messages");
   console.log("\t--debug:                       \tshow pool and miner messages");
   console.log("\t--log=<file_name>:             \t<file_name> of output log");
   console.log("\t--no-config-save:              \tDo not save config file");
@@ -493,43 +503,45 @@ function parse_argv(cb) {
       print_help();
       process.exit(0);
     } else if (m = val.match(/^(?:--quiet|-q)$/)) {
-      c.is_quiet_mode = true;
+      is_quiet_mode = true;
+    } else if (m = val.match(/^(?:--verbose|-v)$/)) {
+      is_verbose_mode = true;
     } else if (m = val.match(/^--debug$/)) {
-      c.is_debug = true;
+      is_debug = true;
     } else if (m = val.match(/^--no-config-save$/)) {
-      c.is_no_config_save = true;
+      is_no_config_save = true;
     } else if (m = val.match(/^(?:--log)=(.+)$/)) {
-      log("Setting log file name to " + m[1]);
+      if (is_verbose_mode) log("Setting log file name to " + m[1]);
       c.log_file = m[1];
     } else if (m = val.match(/^(?:--pool|-p)=(.+)$/)) {
       if (m[1].split(/:/).length == 2) {
-        log("Added pool '" + m[1] + "' to the list of pools");
+        if (is_verbose_mode) log("Added pool '" + m[1] + "' to the list of pools");
         c.pools.push(m[1]);
       } else {
-        log("Pool in invalid format '" + m[1] + "' is ignored, use pool_address:pool_port format");
+        err("Pool in invalid format '" + m[1] + "' is ignored, use pool_address:pool_port format");
       }
     } else if (m = val.match(/^--port=([\d\.]+)$/)) {
-      log("Setting miner port to " + m[1]);
+      if (is_verbose_mode) log("Setting miner port to " + m[1]);
       c.miner_port = m[1];
     } else if (m = val.match(/^(?:--user|-u)=(.+)$/)) {
-      log("Setting pool user to " + m[1]);
+      if (is_verbose_mode) log("Setting pool user to " + m[1]);
       c.user = m[1];
     } else if (m = val.match(/^(?:--perf_([^=]+))=([\d\.]+)$/)) {
       if (m[1] in c.algo_perf) {
         const hashrate = parseFloat(m[2]);
-        log("Setting performance for " + m[1] + " algo class to " + hashrate);
+        if (is_verbose_mode) log("Setting performance for " + m[1] + " algo class to " + hashrate);
         c.algo_perf[m[1]] = hashrate;
       } else {
         err("Ignoring unknown algo class " + m[1]);
       }
     } else if (m = val.match(/^(?:--pass)=(.+)$/)) {
-      log("Setting pool pass to '" + m[1] + "'");
+      if (is_verbose_mode) log("Setting pool pass to '" + m[1] + "'");
       c.pass = m[1];
     } else if (m = val.match(/^(?:--miner|-m)=(.+)$/)) {
-      log("Adding smart miner: '" + m[1] + "'");
+      if (is_verbose_mode) log("Adding smart miner: '" + m[1] + "'");
       smart_miners.push(m[1]);
     } else if (m = val.match(/^(?:--([^=]+))=(.+)$/)) {
-      log("Adding " + m[1] + " algo miner: " + m[2]);
+      if (is_verbose_mode) log("Adding " + m[1] + " algo miner: " + m[2]);
       miners[m[1]] = m[2];
     } else {
       err("Unknow option '" + val + "'");
@@ -537,7 +549,7 @@ function parse_argv(cb) {
   });
 
   miner_server.listen(c.miner_port, "127.0.0.1", function() {
-    log("Local miner server on " + c.miner_port + " port started");
+    if (is_verbose_mode) log("Local miner server on " + c.miner_port + " port started");
     check_miners(smart_miners, miners, cb);
   });
 }
@@ -546,7 +558,7 @@ function parse_argv(cb) {
 
 function load_config_file() {
   if (fs.existsSync(CONFIG_FILE)) {
-    log("Loading " + CONFIG_FILE + " config file");
+    if (is_verbose_mode) log("Loading " + CONFIG_FILE + " config file");
     const c2 = require(CONFIG_FILE);
     for (let x in c2) c[x] = c2[x];
     return true;
@@ -557,13 +569,15 @@ function load_config_file() {
 }
 
 function print_params() {
-  log("");
-  log("SETUP COMPLETE");
   let str = JSON.stringify(c, null, " ");
-  log(str);
-  log("");
-  log("Saving " + CONFIG_FILE + " config file");
-  if (!c.is_no_config_save) fs.writeFile(CONFIG_FILE, str, function(err) { if (err) err("Error saving " + CONFIG_FILE + " file"); });
+  if (is_verbose_mode) {
+    log("");
+    log("SETUP COMPLETE");
+    log(str);
+    log("");
+    log("Saving " + CONFIG_FILE + " config file");
+  }
+  if (!is_no_config_save) fs.writeFile(CONFIG_FILE, str, function(err) { if (err) err("Error saving " + CONFIG_FILE + " file"); });
 }
 
 // *****************************************************************************
@@ -573,13 +587,15 @@ function print_params() {
 function main() {
   print_params();
 
+  log("POOL USER: '" + c.user + "', PASS: '" + c.pass + "'");
+
   miner_login_cb = function(json, miner_socket) {
-    if (curr_pool_socket && !curr_miner_socket) log("Pool <-> miner link was established due to new miner connection");
+    if (curr_pool_socket && !curr_miner_socket) log("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was established due to new miner connection");
     curr_miner_socket = miner_socket;
     if (curr_pool_job1) {
       miner_socket.write(JSON.stringify(curr_pool_job1) + "\n"); 
     } else {
-      err("No first pool job to send to the miner!");
+      err("No pool (" + c.pools[curr_pool_num] + ") job to send to the miner!");
     }
   };
 
@@ -590,12 +606,12 @@ log("Meta Miner " + VERSION);
 
 parse_argv(function() {
   if (c.pools.length == 0) {
-    err("You should specify at least one pool");
+    err("[FATAL] You must specify at least one pool");
     process.exit(1);
   }
 
   if (Object.keys(c.algos).length == 0) {
-    err("You should specify at least one working miner");
+    err("[FATAL] You must specify at least one working miner");
     process.exit(1);
   }
 
