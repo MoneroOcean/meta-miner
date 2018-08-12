@@ -40,7 +40,7 @@ const AGENT        = "Meta Miner " + VERSION;
 const hashrate_regexes = [
   /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)/, // for old xmrig
   /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)/,  // for new xmrig
-  /Totals \(ALL\):\s+[\d\.]+\s+([\d\.]+)/,             // xmr-stak
+  /Totals \(ALL\):\s+[\d\.]+\s+([1-9][\d\.]*)/,             // xmr-stak
 ];
 
 // basic algo for each algo class that is used for performance measurements
