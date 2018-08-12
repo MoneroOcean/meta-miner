@@ -43,7 +43,7 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
 
 Place mm.exe or mm.js (with nodejs installed) into unpacked miner directory either by:
 
-* Download and unpack the latest mm.zip from https://github.com/MoneroOcean/meta-miner/releases
+* Download and unpack the latest mm-vX.X.zip from https://github.com/MoneroOcean/meta-miner/releases
 
 * Or download and install nodejs using https://nodejs.org/dist/v8.11.3/node-v8.11.3-x64.msi installator and download and unpack https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js
 
