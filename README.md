@@ -22,7 +22,10 @@ Options:
         --log=<file_name>:              <file_name> of output log
         --no-config-save:               Do not save config file
         --help (-help,-h,-?):           Prints this help text
+
 ```
+
+Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-algorithm-names-and-variants for list of possible algo names.
 
 ## General configuration guidelines
 
