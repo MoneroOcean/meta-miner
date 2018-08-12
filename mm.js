@@ -167,7 +167,7 @@ let miner_server = net.createServer(function (miner_socket) {
 
 function start_miner_raw(exe, args, out_cb) {
    const cmd = exe + " " + args.join(" ");
-   if (!is_quiet_mode) log("Starting miner: " + cmd);
+   if (is_verbose_mode) log("Starting miner: " + cmd);
    let proc = child_process.spawn(exe, args, {});
 
    proc.stdout.on('data', (data) => {
@@ -262,7 +262,7 @@ function pool_ok(pool_num, pool_socket) {
     if (is_verbose_mode) log("Closing " + c.pools[curr_pool_num] + " pool socket");
     curr_pool_socket.destroy();
   }
-  if (is_verbose_mode) log("Connected to " + c.pools[pool_num] + " pool");
+  if (!is_quiet_mode) log("Connected to " + c.pools[pool_num] + " pool");
   if (!curr_pool_socket && curr_miner_socket) log("Pool (" + c.pools[pool_num] + ") <-> miner link was established due to new pool connection");
   curr_pool_num = pool_num;
   curr_pool_socket = pool_socket;
@@ -284,7 +284,7 @@ function pool_new_msg(is_new_job, json) {
         return;
       }
       curr_miner_socket = null;
-      if (!is_quiet_mode) log("Changing miner to support new " + next_algo + " algo");
+      if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
       if (miner_proc) {
         if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
         miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
