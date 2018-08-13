@@ -141,14 +141,15 @@ let miner_server = net.createServer(function (miner_socket) {
       try {
         const json = JSON.parse(message);
         if (is_debug) log("Miner message: " + JSON.stringify(json));
+        const is_keepalived = "method" in json && json.method === "keepalived";
         if ("method" in json && json.method === "login") {
           miner_login_cb(json, miner_socket);
         } else if (curr_pool_socket) {
           curr_pool_socket.write(JSON.stringify(json) + "\n");
-        } else {
+        } else if (!is_keepalived) {
           err("Can't write miner reply to the pool since its socket is closed");
         }
-        miner_last_message_time = Date.now();
+        if (!is_keepalived) miner_last_message_time = Date.now();
       } catch (e) {
         err("Can't parse message from the miner: " + message);
       }
@@ -543,7 +544,7 @@ function parse_argv(cb) {
         if (is_verbose_mode) log("Added pool '" + m[1] + "' to the list of pools");
         if (c.pools.indexOf(m[1]) == -1) c.pools.push(m[1]);
       } else {
-        err("Pool in invalid format '" + m[1] + "' is ignored, use pool_address:pool_port format");
+        err("Pool in invalid format '" + m[1] + "' is ignored, use <pool_address>:<pool_port> (or <pool_address>:ssl<pool_port>) format");
       }
     } else if (m = val.match(/^--port=([\d\.]+)$/)) {
       if (is_verbose_mode) log("Setting miner port to " + m[1]);
@@ -569,7 +570,7 @@ function parse_argv(cb) {
       if (is_verbose_mode) log("Adding " + m[1] + " algo miner: " + m[2]);
       miners[m[1]] = m[2];
     } else {
-      err("Unknow option '" + val + "'");
+      err("Ignoring unknown option '" + val + "'");
     }
   });
 
