@@ -27,6 +27,7 @@
 const fs            = require('fs');
 const net           = require('net');
 const tls           = require('tls');
+const path          = require('path');
 const child_process = require('child_process');
 
 // *****************************************************************************
@@ -34,7 +35,7 @@ const child_process = require('child_process');
 // *****************************************************************************
 
 const VERSION      = "v0.5";
-const DEFAULT_ALGO = "cn/1";
+const DEFAULT_ALGO = "cn/1"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
 const hashrate_regexes = [
@@ -55,7 +56,7 @@ const algo_perf_algo = {
 // *** CONFIG                                                                ***
 // *****************************************************************************
 
-let CONFIG_FILE = process.cwd() + "/mm.json";
+let console_file = process.cwd() + "/mm.json";
 
 let c = {
   miner_port: 3333,
@@ -513,7 +514,7 @@ function parse_argv(cb) {
     let m;
     if (index === 0) {
       if (m = val.match(/^(.+\.json)$/)) {
-        CONFIG_FILE = m[1];
+        console_file = m[1];
         load_config_file();
         return;
       } else {
@@ -581,13 +582,14 @@ function parse_argv(cb) {
 // *** Load/save config file
 
 function load_config_file() {
-  if (fs.existsSync(CONFIG_FILE)) {
-    if (is_verbose_mode) log("Loading " + CONFIG_FILE + " config file");
-    const c2 = require(CONFIG_FILE);
+  const config_file_abs = path.resolve(console_file);
+  if (fs.existsSync(config_file_abs)) {
+    if (is_verbose_mode) log("Loading " + config_file_abs + " config file");
+    const c2 = require(config_file_abs);
     for (let x in c2) c[x] = c2[x];
     return true;
   } else {
-    err("Config file " + CONFIG_FILE + " does not exists");
+    err("Config file " + config_file_abs + " does not exists");
     return false;
   }
 }
@@ -599,9 +601,9 @@ function print_params() {
     log("SETUP COMPLETE");
     log(str);
     log("");
-    log("Saving " + CONFIG_FILE + " config file");
+    log("Saving " + console_file + " config file");
   }
-  if (!is_no_config_save) fs.writeFile(CONFIG_FILE, str, function(err) { if (err) err("Error saving " + CONFIG_FILE + " file"); });
+  if (!is_no_config_save) fs.writeFile(console_file, str, function(err) { if (err) err("Error saving " + console_file + " file"); });
 }
 
 // *****************************************************************************
