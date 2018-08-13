@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v0.5";
+const VERSION      = "v0.6";
 const DEFAULT_ALGO = "cn/1"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -51,6 +51,13 @@ const algo_perf_algo = {
   "cn-lite":  "cn-lite/1",
   "cn-heavy": "cn-heavy/0",
 };
+
+function algo_perf_class(algo) { // converts algo to algo class
+   if (algo.indexOf("heavy") > -1) return "cn-heavy";
+   if (algo.indexOf("lite")  > -1) return "cn-lite";
+   if (algo.indexOf("msr")   > -1) return "cn-fast";
+   return "cn";
+}
 
 // *****************************************************************************
 // *** CONFIG                                                                ***
@@ -71,7 +78,8 @@ let c = {
   user: null,
   pass: null,
   log_file: null,
-  watchdog: 600
+  watchdog: 600,
+  hashrate_watchdog: 0,
 };
 
 let is_quiet_mode     = false;
@@ -83,11 +91,14 @@ let is_debug          = false;
 // *** WORKING STATE                                                         ***
 // *****************************************************************************
 
-let curr_miner_socket = null;
-let curr_pool_socket  = null;
-let curr_pool_job1    = null;
-let curr_miner        = null;
-let curr_pool_num     = 0;
+let curr_miner_socket   = null;
+let curr_pool_socket    = null;
+let curr_pool_job1      = null;
+let curr_algo           = null;
+let curr_miner          = null;
+let curr_pool_num       = 0;
+let last_miner_hashrate = null;
+let is_want_miner_kill  = false; // true if we want to kill miner (otherwise it is restart if closed without a reason)
 
 let main_pool_check_timer   = null;
 let miner_proc              = null;
@@ -113,6 +124,14 @@ function err(msg) {
 function print_all_messages(str) {
   process.stdout.write(str);
   if (c.log_file) fs.appendFileSync(c.log_file, str);
+  if (c.hashrate_watchdog) {
+    const str2 = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
+    for (let i in hashrate_regexes) {
+      const hashrate_regex = hashrate_regexes[i];
+      const m = str2.match(hashrate_regex);
+      if (m) last_miner_hashrate = parseFloat(m[1]);
+    }
+  }
 }
 
 function print_messages(str) {
@@ -138,21 +157,23 @@ let miner_server = net.createServer(function (miner_socket) {
     for (let i = 0; i < messages.length; i++) {
       let message = messages[i];
       if (message.trim() === '') continue;
+      let json;
       try {
-        const json = JSON.parse(message);
-        if (is_debug) log("Miner message: " + JSON.stringify(json));
-        const is_keepalived = "method" in json && json.method === "keepalived";
-        if ("method" in json && json.method === "login") {
-          miner_login_cb(json, miner_socket);
-        } else if (curr_pool_socket) {
-          curr_pool_socket.write(JSON.stringify(json) + "\n");
-        } else if (!is_keepalived) {
-          err("Can't write miner reply to the pool since its socket is closed");
-        }
-        if (!is_keepalived) miner_last_message_time = Date.now();
+        json = JSON.parse(message);
       } catch (e) {
         err("Can't parse message from the miner: " + message);
+        continue;
       }
+      if (is_debug) log("Miner message: " + JSON.stringify(json));
+      const is_keepalived = "method" in json && json.method === "keepalived";
+      if ("method" in json && json.method === "login") {
+        miner_login_cb(json, miner_socket);
+      } else if (curr_pool_socket) {
+        curr_pool_socket.write(JSON.stringify(json) + "\n");
+      } else if (!is_keepalived) {
+        err("Can't write miner reply to the pool since its socket is closed");
+      }
+      if (!is_keepalived) miner_last_message_time = Date.now();
     }
     miner_data_buff = incomplete_line;
   });
@@ -174,6 +195,8 @@ let miner_server = net.createServer(function (miner_socket) {
 function start_miner_raw(exe, args, out_cb) {
    const cmd = exe + " " + args.join(" ");
    if (is_verbose_mode) log("Starting miner: " + cmd);
+   last_miner_hashrate = null;
+   is_want_miner_kill = false;
    let proc = child_process.spawn(exe, args, {});
 
    proc.stdout.on('data', (data) => {
@@ -186,6 +209,10 @@ function start_miner_raw(exe, args, out_cb) {
      if (is_verbose_mode) {
        if (code) err("Miner '" + cmd + "' exited with nonzero code " + code);
        else log("Miner '" + cmd + "' exited with zero code");
+     }
+     if (curr_pool_socket && !is_want_miner_kill) {
+       log("Restarting '" + cmd + "' miner that was closed unexpectedly");
+       miner_proc = start_miner_raw(exe, args, out_cb);
      }
    });
    proc.on('error', (error) => {
@@ -227,19 +254,21 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
     for (let i = 0; i < messages.length; i++) {
       let message = messages[i];
       if (message.trim() === '') continue;
+      let json;
       try {
-        const json = JSON.parse(message);
-        if (is_debug) log("Pool message: " + JSON.stringify(json));
-        const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
-                           ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
-        if (is_new_job) {
-          if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
-        }
-        if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
-        else err("Ignoring pool (" + c.pools[pool_num] + ") message that does not contain job: " + JSON.stringify(json));
+        json = JSON.parse(message);
       } catch (e) {
         err("Can't parse message from the pool (" + c.pools[pool_num] + "): " + message);
+        continue;
       }
+      if (is_debug) log("Pool message: " + JSON.stringify(json));
+      const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
+                         ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
+      if (is_new_job) {
+        if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
+      }
+      if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
+      else err("Ignoring pool (" + c.pools[pool_num] + ") message that does not contain job: " + JSON.stringify(json));
     }
     pool_data_buff = incomplete_line;
     
@@ -291,6 +320,7 @@ function replace_miner(next_miner) {
   if (miner_proc) {
     if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
     miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
+    is_want_miner_kill = true;
     miner_proc.kill();
   } else {
     miner_proc = start_miner(next_miner, print_all_messages);
@@ -314,7 +344,9 @@ function pool_new_msg(is_new_job, json) {
       }
       curr_miner_socket = null;
       if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
-      replace_miner(curr_miner = next_miner);
+      curr_miner = next_miner;
+      curr_algo  = next_algo;
+      replace_miner(next_miner);
     }
 
     if ("params" in json) {
@@ -491,6 +523,7 @@ function print_help() {
   console.log("\t--miner=<command_line> (-m):   \t<command_line> to start smart miner that can report algo itself");
   console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
   console.log("\t--watchdog=<seconds> (-w):     \trestart miner if is does not submit work for <seconds> (600 by default, 0 to disable)");
+  console.log("\t--hashrate_watchdog=<percent>: \trestart miner if is hashrate dropped below <percent> value of of its expected hashrate (0 by default to disable)");
   console.log("\t--quiet (-q):                  \tdo not show miner output during configuration and also less messages");
   console.log("\t--verbose (-v):                \tshow more messages");
   console.log("\t--debug:                       \tshow pool and miner messages");
@@ -537,8 +570,14 @@ function parse_argv(cb) {
       if (is_verbose_mode) log("Setting log file name to " + m[1]);
       c.log_file = m[1];
     } else if (m = val.match(/^(?:--watchdog|w)=(.+)$/)) {
-      if (is_verbose_mode) log("Setting watchdog timeout to " + (m[1] ? m[1] : "disabled"));
-      c.watchdog = m[1];
+      const number = parseInt(m[1]);
+      if (is_verbose_mode) log("Setting watchdog timeout to " + (number ? number : "disabled"));
+      c.watchdog = number;
+    } else if (m = val.match(/^--hashrate_watchdog=(.+)$/)) {
+      const number = parseInt(m[1]);
+      const percent = number > 100 ? 100 : number;
+      if (is_verbose_mode) log("Setting hashrate watchdog timeout to " + (percent ? percent + "%" : "disabled"));
+      c.hashrate_watchdog = percent;
     } else if (m = val.match(/^(?:--pool|-p)=(.+)$/)) {
       if (m[1].split(/:/).length == 2) {
         if (is_verbose_mode) log("Added pool '" + m[1] + "' to the list of pools");
@@ -547,8 +586,9 @@ function parse_argv(cb) {
         err("Pool in invalid format '" + m[1] + "' is ignored, use <pool_address>:<pool_port> (or <pool_address>:ssl<pool_port>) format");
       }
     } else if (m = val.match(/^--port=([\d\.]+)$/)) {
-      if (is_verbose_mode) log("Setting miner port to " + m[1]);
-      c.miner_port = m[1];
+      const number = parseInt(m[1]);
+      if (is_verbose_mode) log("Setting miner port to " + number);
+      c.miner_port = number;
     } else if (m = val.match(/^(?:--user|-u)=(.+)$/)) {
       if (is_verbose_mode) log("Setting pool user to " + m[1]);
       c.user = m[1];
@@ -627,12 +667,24 @@ function main() {
   };
 
   if (c.watchdog) {
-    if (is_verbose_mode) log("Starting miner watchdog timer");
+    if (is_verbose_mode) log("Starting miner watchdog timer (with " + c.watchdog + " seconds max since last miner result)");
     setInterval(function () {
       if (!curr_pool_socket || !curr_miner_socket) return;
       const miner_idle_time = (Date.now() - miner_last_message_time) / 1000;
       if (miner_idle_time > c.watchdog) {
         err("No results from miner for more than " + c.watchdog + " seconds. Restarting it...");
+        replace_miner(curr_miner);
+      }
+    }, 60*1000);
+  }
+
+  if (c.hashrate_watchdog) {
+    if (is_verbose_mode) log("Starting miner hashrate watchdog timer (with " + c.hashrate_watchdog + "% min hashrate threshold)");
+    setInterval(function () {
+      if (!curr_pool_socket || !curr_miner_socket || last_miner_hashrate === null) return;
+      const min_hashrate = c.algo_perf[algo_perf_class(curr_algo)] * c.hashrate_watchdog / 100;
+      if (last_miner_hashrate < min_hashrate) {
+        err("Current miner hashrate " + last_miner_hashrate + " is below minimum " + min_hashrate + " hashrate theshold. Restarting it...");
         replace_miner(curr_miner);
       }
     }, 60*1000);

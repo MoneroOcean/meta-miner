@@ -9,20 +9,21 @@ Adding algo switching support to *any* stratum miner
 <config_file.json> is file name of config file to load before parsing options (mm.json by default)
 Config file and options should define at least one pool and miner:
 Options:
-   --pool=<pool> (-p):             <pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>
-   --port=<number>:                defines port that will be used for miner connections (3333 by default)
-   --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
-   --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
-   --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn, cn-fast, cn-lite, cn-heavy
-   --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
-   --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
-   --watchdog=<seconds> (-w):      restart miner if is does not submit work for <seconds> (600 by default, 0 to disable)
-   --quiet (-q):                   do not show miner output during configuration and also less messages
-   --verbose (-v):                 show more messages
-   --debug:                        show pool and miner messages
-   --log=<file_name>:              <file_name> of output log
-   --no-config-save:               Do not save config file
-   --help (-help,-h,-?):           Prints this help text
+        --pool=<pool> (-p):             <pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>
+        --port=<number>:                defines port that will be used for miner connections (3333 by default)
+        --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
+        --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
+        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn, cn-fast, cn-lite, cn-heavy
+        --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
+        --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
+        --watchdog=<seconds> (-w):      restart miner if is does not submit work for <seconds> (600 by default, 0 to disable)
+        --hashrate_watchdog=<percent>:  restart miner if is hashrate dropped below <percent> value of of its expected hashrate (0 by default to disable)
+        --quiet (-q):                   do not show miner output during configuration and also less messages
+        --verbose (-v):                 show more messages
+        --debug:                        show pool and miner messages
+        --log=<file_name>:              <file_name> of output log
+        --no-config-save:               Do not save config file
+        --help (-help,-h,-?):           Prints this help text
 ```
 
 Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-algorithm-names-and-variants for list of possible algo names.
