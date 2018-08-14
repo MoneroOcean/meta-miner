@@ -56,7 +56,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
  "user": "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1",
  "pass": "x",
  "log_file": null,
- "watchdog": 600
+ "watchdog": 600,
+ "hashrate_watchdog": 0
 }
 ```
 
@@ -64,11 +65,13 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
 
 * Configure your miners to connect to the single localhost:3333 (non SSL/TLS) pool.
 
-* For best results separate xmr-stak CPU and GPU miners (by using –noCPU, --noAMD, --noNVIDIA options).
+* For best results separate xmr-stak CPU and GPU miners (by using --noCPU, --noAMD, --noNVIDIA options).
+
+* Prepare your miner config files that give the best performance for your hardware on cryptonight, cryptonight-lite and cryptonight-heavy algorithm classes.
 
 * If you have several miners on one host use mm.js --port option to assign them to different ports.
 
-* Additional mm.js pools will be used as backup pool.
+* Additional mm.js pools will be used as backup pools.
 
 * To rerun benchmark for specific algorithm class use --perf_<algo_class>=0 option.
 
