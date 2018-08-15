@@ -39,9 +39,9 @@ const DEFAULT_ALGO = "cn/1"; // this is algo that is assumed to be sent by pool 
 const AGENT        = "Meta Miner " + VERSION;
 
 const hashrate_regexes = [
-  /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)/,       // for old xmrig
-  /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)/,        // for new xmrig
-  /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)/, // xmr-stak
+  /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,       // for old xmrig
+  /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,        // for new xmrig
+  /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/, // xmr-stak
 ];
 
 // basic algo for each algo class that is used for performance measurements
@@ -94,11 +94,12 @@ let is_debug          = false;
 let curr_miner_socket   = null;
 let curr_pool_socket    = null;
 let curr_pool_job1      = null;
-let curr_algo           = null;
 let curr_miner          = null;
 let curr_pool_num       = 0;
 let last_miner_hashrate = null;
 let is_want_miner_kill  = false; // true if we want to kill miner (otherwise it is restart if closed without a reason)
+let curr_perf_class     = null;
+let last_perf_class_change_time = null;
 
 let main_pool_check_timer   = null;
 let miner_proc              = null;
@@ -196,6 +197,7 @@ function start_miner_raw(exe, args, out_cb) {
    const cmd = exe + " " + args.join(" ");
    if (is_verbose_mode) log("Starting miner: " + cmd);
    last_miner_hashrate = null;
+   last_perf_class_change_time = null;
    is_want_miner_kill = false;
    let proc = child_process.spawn(exe, args, {});
 
@@ -336,6 +338,9 @@ function pool_new_msg(is_new_job, json) {
       err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
       return;
     }
+    const next_perf_class = algo_perf_class(next_algo);
+    if (curr_perf_class != next_perf_class) last_perf_class_change_time = Date.now();
+    curr_perf_class = next_perf_class;
     const next_miner = c.algos[next_algo];
     if (!curr_miner || curr_miner != next_miner) {
       if (curr_miner && curr_miner_socket == null) {
@@ -345,7 +350,6 @@ function pool_new_msg(is_new_job, json) {
       curr_miner_socket = null;
       if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
       curr_miner = next_miner;
-      curr_algo  = next_algo;
       replace_miner(next_miner);
     }
 
@@ -682,7 +686,9 @@ function main() {
     if (is_verbose_mode) log("Starting miner hashrate watchdog timer (with " + c.hashrate_watchdog + "% min hashrate threshold)");
     setInterval(function () {
       if (!curr_pool_socket || !curr_miner_socket || last_miner_hashrate === null) return;
-      const min_hashrate = c.algo_perf[algo_perf_class(curr_algo)] * c.hashrate_watchdog / 100;
+      // there was perf class change without miner restart so we need to wait for at least 15 minutes for hashrate to be correct
+      if (last_perf_class_change_time && Date.now() - last_perf_class_change_time < 15*60*1000) return;
+      const min_hashrate = c.algo_perf[curr_perf_class] * c.hashrate_watchdog / 100;
       if (last_miner_hashrate < min_hashrate) {
         err("Current miner hashrate " + last_miner_hashrate + " is below minimum " + min_hashrate + " hashrate theshold. Restarting it...");
         replace_miner(curr_miner);
