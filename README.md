@@ -119,7 +119,7 @@ localhost:3333
 44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1
 ```
 
-* Enable hashrate output by setting "verbose_level" to 4 in config.txt so it can be collected by mm.js.
+* Enable hashrate output by setting "verbose_level" to 4 in config.txt so it can be collected by mm.js (also set "flush_stdout" to true for older xmr-stak versions).
 
 * Copy amd.txt to amd-lite.txt and amd-heavy.txt and adjust all of them for the best threads performance (out of scope of this guide).
 
@@ -186,10 +186,11 @@ localhost:3333
 44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1
 ```
 
-* Enable hashrate output so it can be collected by mm.js:
+* Enable hashrate output so it can be collected by mm.js and disable output flush (for older xmr-stak versions):
 
 ```shell
 sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' config.txt
+sed -i 's/"flush_stdout" : false,/"flush_stdout" : true,/' config.txt
 ```
 
 * Prepare and adjust configs for different algorithms:
