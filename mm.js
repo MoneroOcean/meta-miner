@@ -648,7 +648,7 @@ function print_params() {
     log("");
     log("Saving " + console_file + " config file");
   }
-  if (!is_no_config_save) fs.writeFile(console_file, str, function(err) { if (err) err("Error saving " + console_file + " file"); });
+  if (!is_no_config_save) fs.writeFile(console_file, str, function(error) { if (error) err("Error saving " + console_file + " file"); });
 }
 
 // *****************************************************************************
