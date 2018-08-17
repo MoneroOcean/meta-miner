@@ -10,6 +10,7 @@ Adding algo switching support to *any* stratum miner
 Config file and options should define at least one pool and miner:
 Options:
         --pool=<pool> (-p):             <pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>
+        --host=<hostname>:              defines host that will be used for miner connections (localhost 127.0.0.1 by default)
         --port=<number>:                defines port that will be used for miner connections (3333 by default)
         --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
         --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
