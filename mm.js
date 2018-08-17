@@ -66,6 +66,7 @@ function algo_perf_class(algo) { // converts algo to algo class
 let console_file = process.cwd() + "/mm.json";
 
 let c = {
+  miner_host: "127.0.0.1",
   miner_port: 3333,
   pools: [],
   algos: {},
@@ -143,10 +144,10 @@ function print_messages(str) {
 
 let miner_server = net.createServer(function (miner_socket) {
   if (curr_miner_socket) {
-    err("Miner server on " + c.miner_port + " port is already connected (please make sure you do not have other miner running)");
+    err("Miner server on " + c.miner_host + ":" + c.miner_port + " port is already connected (please make sure you do not have other miner running)");
     return;
   }
-  if (is_verbose_mode) log("Miner server on " + c.miner_port + " port connected from " + miner_socket.remoteAddress);
+  if (is_verbose_mode) log("Miner server on " + + c.miner_host + ":" + c.miner_port + " port connected from " + miner_socket.remoteAddress);
 
   let miner_data_buff = "";
 
@@ -457,7 +458,7 @@ function check_miners(smart_miners, miners, cb) {
     });
   }
 
-  if (!is_quiet_mode && check_miners.length) log("Checking miner configurations (make sure they all configured to connect to localhost:" + c.miner_port + " pool)");
+  if (!is_quiet_mode && check_miners.length) log("Checking miner configurations (make sure they all configured to connect to localhost:" + + c.miner_host + ":" + c.miner_port + " pool)");
   function next_miner_check() {
     if (check_miners.length === 0) return cb();
     const check_miner = check_miners.shift();
@@ -520,6 +521,7 @@ function print_help() {
   console.log("Config file and options should define at least one pool and miner:");
   console.log("Options:");
   console.log("\t--pool=<pool> (-p):            \t<pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>");
+  console.log("\t--host=<hostname>:             \tdefines host that will be used for miner connections (localhost 127.0.0.1 by default)");
   console.log("\t--port=<number>:               \tdefines port that will be used for miner connections (3333 by default)");
   console.log("\t--user=<wallet> (-u):          \t<wallet> to use as pool user login (will be taken from the first miner otherwise)");
   console.log("\t--pass=<miner_id>:             \t<miner_id> to use as pool pass login (will be taken from the first miner otherwise)");
@@ -589,6 +591,9 @@ function parse_argv(cb) {
       } else {
         err("Pool in invalid format '" + m[1] + "' is ignored, use <pool_address>:<pool_port> (or <pool_address>:ssl<pool_port>) format");
       }
+    } else if (m = val.match(/^--host=(.+)$/)) {
+      if (is_verbose_mode) log("Setting miner host to " + m[1]);
+      c.miner_host = m[1];
     } else if (m = val.match(/^--port=([\d\.]+)$/)) {
       const number = parseInt(m[1]);
       if (is_verbose_mode) log("Setting miner port to " + number);
@@ -618,8 +623,8 @@ function parse_argv(cb) {
     }
   });
 
-  miner_server.listen(c.miner_port, "127.0.0.1", function() {
-    if (is_verbose_mode) log("Local miner server on " + c.miner_port + " port started");
+  miner_server.listen(c.miner_port, c.miner_host, function() {
+    if (is_verbose_mode) log("Local miner server on " + c.miner_host + ":" + c.miner_port + " port started");
     check_miners(smart_miners, miners, cb);
   });
 }
