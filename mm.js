@@ -127,7 +127,7 @@ function tree_kill(pid, signal, callback) {
 
     switch (process.platform) {
     case 'win32':
-        child_process.exec('taskkill /pid ' + pid + ' /T /F', callback);
+        child_process.exec('taskkill /pid ' + pid + ' /T /F', {}, callback);
         break;
     case 'darwin':
         buildProcessTree(pid, tree, pidsToProcess, function (parentPid) {
