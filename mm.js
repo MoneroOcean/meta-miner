@@ -112,6 +112,112 @@ let miner_last_message_time = null;
 // *** FUNCTIONS                                                             ***
 // *****************************************************************************
 
+// *** inlined from tree_kill module
+
+function tree_kill(pid, signal, callback) {
+    var tree = {};
+    var pidsToProcess = {};
+    tree[pid] = [];
+    pidsToProcess[pid] = 1;
+
+    if (typeof signal === 'function' && callback === undefined) {
+      callback = signal;
+      signal = undefined;
+    }
+
+    switch (process.platform) {
+    case 'win32':
+        child_process.exec('taskkill /pid ' + pid + ' /T /F', callback);
+        break;
+    case 'darwin':
+        buildProcessTree(pid, tree, pidsToProcess, function (parentPid) {
+          return child_process.spawn('pgrep', ['-P', parentPid]);
+        }, function () {
+            killAll(tree, signal, callback);
+        });
+        break;
+    // case 'sunos':
+    //     buildProcessTreeSunOS(pid, tree, pidsToProcess, function () {
+    //         killAll(tree, signal, callback);
+    //     });
+    //     break;
+    default: // Linux
+        buildProcessTree(pid, tree, pidsToProcess, function (parentPid) {
+          return child_process.spawn('ps', ['-o', 'pid', '--no-headers', '--ppid', parentPid]);
+        }, function () {
+            killAll(tree, signal, callback);
+        });
+        break;
+    }
+};
+
+function killAll (tree, signal, callback) {
+    var killed = {};
+    try {
+        Object.keys(tree).forEach(function (pid) {
+            tree[pid].forEach(function (pidpid) {
+                if (!killed[pidpid]) {
+                    killPid(pidpid, signal);
+                    killed[pidpid] = 1;
+                }
+            });
+            if (!killed[pid]) {
+                killPid(pid, signal);
+                killed[pid] = 1;
+            }
+        });
+    } catch (err) {
+        if (callback) {
+            return callback(err);
+        } else {
+            throw err;
+        }
+    }
+    if (callback) {
+        return callback();
+    }
+}
+
+function killPid(pid, signal) {
+    try {
+        process.kill(parseInt(pid, 10), signal);
+    }
+    catch (err) {
+        if (err.code !== 'ESRCH') throw err;
+    }
+}
+
+function buildProcessTree (parentPid, tree, pidsToProcess, spawnChildProcessesList, cb) {
+    var ps = spawnChildProcessesList(parentPid);
+    var allData = '';
+    ps.stdout.on('data', function (data) {
+        var data = data.toString('ascii');
+        allData += data;
+    });
+
+    var onClose = function (code) {
+        delete pidsToProcess[parentPid];
+
+        if (code != 0) {
+            // no more parent processes
+            if (Object.keys(pidsToProcess).length == 0) {
+                cb();
+            }
+            return;
+        }
+
+        allData.match(/\d+/g).forEach(function (pid) {
+          pid = parseInt(pid, 10);
+          tree[parentPid].push(pid);
+          tree[pid] = [];
+          pidsToProcess[pid] = 1;
+          buildProcessTree(pid, tree, pidsToProcess, spawnChildProcessesList, cb);
+        });
+    };
+
+    ps.on('close', onClose);
+}
+
 // *** Console/log output
 
 function log(msg) {
@@ -325,7 +431,7 @@ function replace_miner(next_miner) {
     if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
     miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
     is_want_miner_kill = true;
-    miner_proc.kill();
+    tree_kill(miner_proc.pid);
   } else {
     miner_proc = start_miner(next_miner, print_all_messages);
   }
@@ -408,7 +514,7 @@ function check_miners(smart_miners, miners, cb) {
       let timeout = setTimeout(function () {
         err("Miner '" + cmd + "' was not connected and will be ignored");
         miner_proc.on('close', (code) => { resolve(); });
-        miner_proc.kill();
+        tree_kill(miner_proc.pid);
       }, 60*1000);
       miner_login_cb = function(json) {
         clearTimeout(timeout);
@@ -427,7 +533,7 @@ function check_miners(smart_miners, miners, cb) {
           err("Miner '" + cmd + "' does not report any algo and will be ignored");
         }
         miner_proc.on('close', (code) => { resolve(); });
-        miner_proc.kill();
+        tree_kill(miner_proc.pid);
       };
       miner_proc = start_miner(cmd, print_messages);
     });
@@ -440,7 +546,7 @@ function check_miners(smart_miners, miners, cb) {
       let timeout = setTimeout(function () {
         err("Miner '" + cmd + "' was not connected and will be ignored");
         miner_proc.on('close', (code) => { resolve(); });
-        miner_proc.kill();
+        tree_kill(miner_proc.pid);
       }, 60*1000);
       miner_login_cb = function(json) {
         clearTimeout(timeout);
@@ -453,7 +559,7 @@ function check_miners(smart_miners, miners, cb) {
         c.algos[algo.replace('cryptonight', 'cn')] = cmd;
         c.algos[algo.replace('cn', 'cryptonight')] = cmd;
         miner_proc.on('close', (code) => { resolve(); });
-        miner_proc.kill();
+        tree_kill(miner_proc.pid);
       };
       miner_proc = start_miner(cmd, print_messages);
     });
@@ -481,7 +587,7 @@ function do_miner_perf_runs(cb) {
       let timeout = setTimeout(function () {
         err("Can't find performance data in '" + cmd + "' miner output");
         miner_proc.on('close', (code) => { resolve(); });
-        miner_proc.kill();
+        tree_kill(miner_proc.pid);
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
         miner_socket.write('{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n');
@@ -497,7 +603,7 @@ function do_miner_perf_runs(cb) {
             log("Setting performance for " + algo_class + " algo class to " + hashrate);
             c.algo_perf[algo_class] = hashrate;
             miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
-            miner_proc.kill();
+            tree_kill(miner_proc.pid);
             break;
           }
         }
