@@ -42,6 +42,7 @@ const hashrate_regexes = [
   /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,       // for old xmrig
   /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,        // for new xmrig
   /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/, // xmr-stak
+  /Total Speed: ([\d\.]+) H\/s,/,                              // claymore
 ];
 
 // basic algo for each algo class that is used for performance measurements
