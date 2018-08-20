@@ -565,7 +565,7 @@ function check_miners(smart_miners, miners, cb) {
     });
   }
 
-  if (!is_quiet_mode && check_miners.length) log("Checking miner configurations (make sure they all configured to connect to localhost:" + c.miner_host + ":" + c.miner_port + " pool)");
+  if (!is_quiet_mode && check_miners.length) log("Checking miner configurations (make sure they all configured to connect to " + c.miner_host + ":" + c.miner_port + " pool)");
   function next_miner_check() {
     if (check_miners.length === 0) return cb();
     const check_miner = check_miners.shift();
