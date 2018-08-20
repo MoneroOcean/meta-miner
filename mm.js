@@ -465,7 +465,7 @@ function pool_new_msg(is_new_job, json) {
       if (curr_pool_job1) {
         curr_pool_job1.result.job = json.params;
       } else {
-        err("[INTERNAL ERROR] Can not update pool (" + c.pools[pool_num] + ") job since its first job is missing");
+        err("[INTERNAL ERROR] Can not update pool (" + c.pools[curr_pool_num] + ") job since its first job is missing");
       }
     } else {
       curr_pool_job1 = json;
