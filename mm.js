@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v0.8";
+const VERSION      = "v0.9";
 const DEFAULT_ALGO = "cn/1"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -77,6 +77,7 @@ let c = {
     "cn-lite":  0,
     "cn-heavy": 0,
   },
+  algo_min_time: 0,
   user: null,
   pass: null,
   log_file: null,
@@ -350,7 +351,11 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
   let pool_socket = is_tls ? tls.connect(port, host, { rejectUnauthorized: false }) : net.connect(port, host);
 
   pool_socket.on('connect', function () {
-    pool_socket.write('{"id":1,"jsonrpc": "2.0","method":"login","params":{"login":"' + c.user + '","pass":"' + c.pass + '","agent":"' + AGENT + '","algo":' + JSON.stringify(Object.keys(c.algos)) + ',"algo-perf":' + JSON.stringify(c.algo_perf) + '}}\n');
+    pool_socket.write(
+      '{"id":1,"jsonrpc": "2.0","method":"login","params":{"login":"' + c.user +
+      '","pass":"' + c.pass + '","agent":"' + AGENT + '","algo":' + JSON.stringify(Object.keys(c.algos)) +
+      ',"algo-perf":' + JSON.stringify(c.algo_perf) + ',"algo-min-time":' + c.algo_min_time + '}}\n'
+    );
   });
 
   let is_pool_ok = false; 
@@ -590,7 +595,11 @@ function do_miner_perf_runs(cb) {
         tree_kill(miner_proc.pid);
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
-        miner_socket.write('{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n');
+        const test_blob_str = "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03";
+        miner_socket.write(
+          '{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
+          '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n'
+       );
       };
       miner_proc = start_miner(cmd, function(str) {
         print_messages(str);
@@ -633,6 +642,7 @@ function print_help() {
   console.log("\t--user=<wallet> (-u):          \t<wallet> to use as pool user login (will be taken from the first miner otherwise)");
   console.log("\t--pass=<miner_id>:             \t<miner_id> to use as pool pass login (will be taken from the first miner otherwise)");
   console.log("\t--perf_<algo_class>=<hashrate> \tSets hashrate for perf <algo_class> that is: " + Object.keys(c.algo_perf).join(", "));
+  console.log("\t--algo_min_time=<seconds>      \tSets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)");
   console.log("\t--miner=<command_line> (-m):   \t<command_line> to start smart miner that can report algo itself");
   console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
   console.log("\t--watchdog=<seconds> (-w):     \trestart miner if is does not submit work for <seconds> (600 by default, 0 to disable)");
@@ -708,6 +718,10 @@ function parse_argv(cb) {
     } else if (m = val.match(/^(?:--user|-u)=(.+)$/)) {
       if (is_verbose_mode) log("Setting pool user to " + m[1]);
       c.user = m[1];
+    } else if (m = val.match(/^--algo_min_time=([\d\.]+)$/)) {
+      const number = parseInt(m[1]);
+      if (is_verbose_mode) log("Setting algo min time to " + number);
+      c.algo_min_time = number;
     } else if (m = val.match(/^(?:--perf_([^=]+))=([\d\.]+)$/)) {
       if (m[1] in c.algo_perf) {
         const hashrate = parseFloat(m[2]);
