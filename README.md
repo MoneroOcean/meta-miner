@@ -1,5 +1,6 @@
 # meta-miner
 Meta Miner: allows to add algo switching support to *any* stratum miner
+
 Does not add any extra mining fees.
 
 ## Check mm.js builtin help
