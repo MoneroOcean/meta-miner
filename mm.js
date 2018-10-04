@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v0.9";
+const VERSION      = "v1.0";
 const DEFAULT_ALGO = "cn/1"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -451,6 +451,17 @@ function pool_new_msg(is_new_job, json) {
       err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
       return;
     }
+
+    if ("params" in json) {
+      if (curr_pool_job1) {
+        curr_pool_job1.result.job = json.params;
+      } else {
+        err("[INTERNAL ERROR] Can not update pool (" + c.pools[curr_pool_num] + ") job since its first job is missing");
+      }
+    } else {
+      curr_pool_job1 = json;
+    }
+
     const next_perf_class = algo_perf_class(next_algo);
     if (curr_perf_class != next_perf_class) last_perf_class_change_time = Date.now();
     curr_perf_class = next_perf_class;
@@ -464,16 +475,6 @@ function pool_new_msg(is_new_job, json) {
       if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
       curr_miner = next_miner;
       replace_miner(next_miner);
-    }
-
-    if ("params" in json) {
-      if (curr_pool_job1) {
-        curr_pool_job1.result.job = json.params;
-      } else {
-        err("[INTERNAL ERROR] Can not update pool (" + c.pools[curr_pool_num] + ") job since its first job is missing");
-      }
-    } else {
-      curr_pool_job1 = json;
     }
   }
 
