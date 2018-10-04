@@ -107,7 +107,7 @@ let last_perf_class_change_time = null;
 let main_pool_check_timer   = null;
 let miner_proc              = null;
 let miner_login_cb          = null;
-let miner_last_message_time = null;
+let miner_last_submit_time  = null;
 
 // *****************************************************************************
 // *** FUNCTIONS                                                             ***
@@ -275,15 +275,19 @@ let miner_server = net.createServer(function (miner_socket) {
         continue;
       }
       if (is_debug) log("Miner message: " + JSON.stringify(json));
-      const is_keepalived = "method" in json && json.method === "keepalived";
-      if ("method" in json && json.method === "login") {
-        miner_login_cb(json, miner_socket);
+      const is_method = "method" in json;
+      if (is_method && json.method === "login") {
+        if (curr_miner_socket) { // need to restart miner in case of second login attempt to clean its internal state
+          replace_miner(curr_miner);
+        } else {
+          miner_login_cb(json, miner_socket);
+        }
       } else if (curr_pool_socket) {
         curr_pool_socket.write(JSON.stringify(json) + "\n");
-      } else if (!is_keepalived) {
+        if (is_method && json.method === "submit") miner_last_submit_time = Date.now();
+      } else if (!(is_method && json.method === "keepalived")) {
         err("Can't write miner reply to the pool since its socket is closed");
       }
-      if (!is_keepalived) miner_last_message_time = Date.now();
     }
     miner_data_buff = incomplete_line;
   });
@@ -800,8 +804,8 @@ function main() {
   if (c.watchdog) {
     if (is_verbose_mode) log("Starting miner watchdog timer (with " + c.watchdog + " seconds max since last miner result)");
     setInterval(function () {
-      if (!curr_pool_socket || !curr_miner_socket) return;
-      const miner_idle_time = (Date.now() - miner_last_message_time) / 1000;
+      if (!curr_pool_socket || !curr_miner_socket || miner_last_submit_time === null) return;
+      const miner_idle_time = (Date.now() - miner_last_submit_time) / 1000;
       if (miner_idle_time > c.watchdog) {
         err("No results from miner for more than " + c.watchdog + " seconds. Restarting it...");
         replace_miner(curr_miner);
