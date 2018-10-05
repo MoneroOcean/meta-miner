@@ -32,16 +32,17 @@ Options:
 
 Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-algorithm-names-and-variants for list of possible algo names.
 
-## Sample mm.json
+## Sample mm.json (to use with xmrig v2.8.0+ located in the same directory)
 
 ```
 {
  "miner_port": 3333,
  "pools": [
-  "gulf.moneroocean.stream:10001"
+   "gulf.moneroocean.stream:10001"
  ],
  "algos": {
   "cn/1": "./xmrig --config=config.json",
+  "cn/2": "./xmrig --config=config.json",
   "cn/xtl": "./xmrig --config=config.json",
   "cn/msr": "./xmrig --config=config.json",
   "cn/xao": "./xmrig --config=config.json",
@@ -53,7 +54,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
  },
  "algo_perf": {
   "cn": 30.2,
-  "cn-fast": 57.6,
+  "cn/2": 38,
+  "cn-msr": 57.6,
   "cn-lite": 109.1,
   "cn-heavy": 27
  },
