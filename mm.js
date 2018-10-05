@@ -73,7 +73,7 @@ let c = {
   miner_port: 3333,
   pools: [],
   algos: {},
-  algo_perf: {'
+  algo_perf: {
     "cn-2":     0,
     "cn":       0,
     "cn-fast":  0,
