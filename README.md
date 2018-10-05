@@ -16,7 +16,7 @@ Options:
         --port=<number>:                defines port that will be used for miner connections (3333 by default)
         --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
         --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
-        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn, cn-fast, cn-lite, cn-heavy
+        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn, cn/2, cn/msr, cn-lite, cn-heavy
         --algo_min_time=<seconds>       Sets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)
         --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
         --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
