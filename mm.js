@@ -678,7 +678,7 @@ function parse_argv(cb) {
   process.argv.slice(2).forEach(function (val, index) {
     let m;
     if (index === 0) {
-      if (m = val.match(/^(.+\.json)$/)) {
+      if (m = val.match(/^(.+\.json)$/) && fs.existsSync(path.resolve(m[1]))) {
         console_file = m[1];
         load_config_file();
         return;
