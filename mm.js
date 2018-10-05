@@ -34,8 +34,8 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.0";
-const DEFAULT_ALGO = "cn/1"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
+const VERSION      = "v1.2";
+const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
 const hashrate_regexes = [
@@ -47,8 +47,9 @@ const hashrate_regexes = [
 
 // basic algo for each algo class that is used for performance measurements
 const algo_perf_algo = {
+  "cn/2":     "cn/2",
   "cn":       "cn/1",
-  "cn-fast":  "cn/msr",
+  "cn/msr":   "cn/msr",
   "cn-lite":  "cn-lite/1",
   "cn-heavy": "cn-heavy/0",
 };
@@ -56,7 +57,8 @@ const algo_perf_algo = {
 function algo_perf_class(algo) { // converts algo to algo class
    if (algo.indexOf("heavy") > -1) return "cn-heavy";
    if (algo.indexOf("lite")  > -1) return "cn-lite";
-   if (algo.indexOf("msr")   > -1) return "cn-fast";
+   if (algo.indexOf("msr")   > -1) return "cn/msr";
+   if (algo.indexOf("cn/2")  > -1) return "cn/2";
    return "cn";
 }
 
@@ -72,8 +74,9 @@ let c = {
   pools: [],
   algos: {},
   algo_perf: {
+    "cn/2":     0,
     "cn":       0,
-    "cn-fast":  0,
+    "cn/msr":   0,
     "cn-lite":  0,
     "cn-heavy": 0,
   },
@@ -471,10 +474,6 @@ function pool_new_msg(is_new_job, json) {
     curr_perf_class = next_perf_class;
     const next_miner = c.algos[next_algo];
     if (!curr_miner || curr_miner != next_miner) {
-      if (curr_miner && curr_miner_socket == null) {
-        err("Ignoring job with new algo " + next_algo + " from the pool (" + c.pools[curr_pool_num] + ") since we still waiting for new miner to start");
-        return;
-      }
       curr_miner_socket = null;
       if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
       curr_miner = next_miner;
@@ -537,7 +536,6 @@ function check_miners(smart_miners, miners, cb) {
             }
             c.algos[algo] = cmd;
             c.algos[algo.replace('cryptonight', 'cn')] = cmd;
-            c.algos[algo.replace('cn', 'cryptonight')] = cmd;
           });
         } else {
           err("Miner '" + cmd + "' does not report any algo and will be ignored");
@@ -567,7 +565,6 @@ function check_miners(smart_miners, miners, cb) {
         }
         c.algos[algo] = cmd;
         c.algos[algo.replace('cryptonight', 'cn')] = cmd;
-        c.algos[algo.replace('cn', 'cryptonight')] = cmd;
         miner_proc.on('close', (code) => { resolve(); });
         tree_kill(miner_proc.pid);
       };
@@ -675,7 +672,7 @@ function parse_argv(cb) {
   process.argv.slice(2).forEach(function (val, index) {
     let m;
     if (index === 0) {
-      if (m = val.match(/^(.+\.json)$/)) {
+      if ((m = val.match(/^(.+\.json)$/)) && fs.existsSync(path.resolve(m[1]))) {
         console_file = m[1];
         load_config_file();
         return;
