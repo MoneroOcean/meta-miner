@@ -474,10 +474,6 @@ function pool_new_msg(is_new_job, json) {
     curr_perf_class = next_perf_class;
     const next_miner = c.algos[next_algo];
     if (!curr_miner || curr_miner != next_miner) {
-      if (curr_miner && curr_miner_socket == null) {
-        err("Ignoring job with new algo " + next_algo + " from the pool (" + c.pools[curr_pool_num] + ") since we still waiting for new miner to start");
-        return;
-      }
       curr_miner_socket = null;
       if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
       curr_miner = next_miner;
