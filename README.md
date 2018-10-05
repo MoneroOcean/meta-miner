@@ -55,7 +55,7 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
  "algo_perf": {
   "cn": 30.2,
   "cn/2": 38,
-  "cn-msr": 57.6,
+  "cn/msr": 57.6,
   "cn-lite": 109.1,
   "cn-heavy": 27
  },
