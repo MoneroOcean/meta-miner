@@ -47,9 +47,9 @@ const hashrate_regexes = [
 
 // basic algo for each algo class that is used for performance measurements
 const algo_perf_algo = {
-  "cn-2":     "cn/2",
+  "cn/2":     "cn/2",
   "cn":       "cn/1",
-  "cn-fast":  "cn/msr",
+  "cn/msr":   "cn/msr",
   "cn-lite":  "cn-lite/1",
   "cn-heavy": "cn-heavy/0",
 };
@@ -57,8 +57,8 @@ const algo_perf_algo = {
 function algo_perf_class(algo) { // converts algo to algo class
    if (algo.indexOf("heavy") > -1) return "cn-heavy";
    if (algo.indexOf("lite")  > -1) return "cn-lite";
-   if (algo.indexOf("msr")   > -1) return "cn-fast";
-   if (algo.indexOf("cn/2")  > -1) return "cn-2";
+   if (algo.indexOf("msr")   > -1) return "cn/msr";
+   if (algo.indexOf("cn/2")  > -1) return "cn/2";
    return "cn";
 }
 
@@ -74,9 +74,9 @@ let c = {
   pools: [],
   algos: {},
   algo_perf: {
-    "cn-2":     0,
+    "cn/2":     0,
     "cn":       0,
-    "cn-fast":  0,
+    "cn/msr":   0,
     "cn-lite":  0,
     "cn-heavy": 0,
   },
