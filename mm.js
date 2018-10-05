@@ -540,7 +540,6 @@ function check_miners(smart_miners, miners, cb) {
             }
             c.algos[algo] = cmd;
             c.algos[algo.replace('cryptonight', 'cn')] = cmd;
-            c.algos[algo.replace('cn', 'cryptonight')] = cmd;
           });
         } else {
           err("Miner '" + cmd + "' does not report any algo and will be ignored");
@@ -570,7 +569,6 @@ function check_miners(smart_miners, miners, cb) {
         }
         c.algos[algo] = cmd;
         c.algos[algo.replace('cryptonight', 'cn')] = cmd;
-        c.algos[algo.replace('cn', 'cryptonight')] = cmd;
         miner_proc.on('close', (code) => { resolve(); });
         tree_kill(miner_proc.pid);
       };
