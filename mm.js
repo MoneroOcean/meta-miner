@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.2";
+const VERSION      = "v1.3";
 const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -101,6 +101,7 @@ let curr_miner_socket   = null;
 let curr_pool_socket    = null;
 let curr_pool_job1      = null;
 let curr_miner          = null;
+let next_miner_to_run   = null; // here we store miner command line that will be run after current miner is stopped or null if no miner is being stopped now
 let curr_pool_num       = 0;
 let last_miner_hashrate = null;
 let is_want_miner_kill  = false; // true if we want to kill miner (otherwise it is restart if closed without a reason)
@@ -440,10 +441,18 @@ function pool_ok(pool_num, pool_socket) {
 
 function replace_miner(next_miner) {
   if (miner_proc) {
-    if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
-    miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
-    is_want_miner_kill = true;
-    tree_kill(miner_proc.pid);
+    if (next_miner_to_run === null) {
+      next_miner_to_run = next_miner;
+      if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
+      miner_proc.on('close', (code) => {
+        miner_proc = start_miner(next_miner_to_run, print_all_messages);
+        next_miner_to_run = null;
+      });
+      is_want_miner_kill = true;
+      tree_kill(miner_proc.pid);
+    } else {
+      next_miner_to_run = next_miner;
+    }
   } else {
     miner_proc = start_miner(next_miner, print_all_messages);
   }
