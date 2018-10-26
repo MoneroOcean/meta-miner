@@ -424,7 +424,7 @@ function pool_ok(pool_num, pool_socket) {
     if (!main_pool_check_timer) set_main_pool_check_timer();
   } else {
     if (main_pool_check_timer) {
-      if (is_verbose_mode) log("Stopped main pool connection attemps since its connection was established");
+      if (is_verbose_mode) log("Stopped main pool connection attempts since its connection was established");
       clearTimeout(main_pool_check_timer);
       main_pool_check_timer = null;
     }
@@ -494,7 +494,7 @@ function pool_new_msg(is_new_job, json) {
 }
 
 function pool_err(pool_num) {
-  if (pool_num === 0 && curr_pool_num) { // this is main pool attept error while we are on backup pool
+  if (pool_num === 0 && curr_pool_num) { // this is main pool attempt error while we are on backup pool
     if (!main_pool_check_timer) err("[INTERNAL ERROR] Unexpected main_pool_check_timer state in pool_err");
     set_main_pool_check_timer();
     return;
@@ -827,7 +827,7 @@ function main() {
       if (last_perf_class_change_time && Date.now() - last_perf_class_change_time < 15*60*1000) return;
       const min_hashrate = c.algo_perf[curr_perf_class] * c.hashrate_watchdog / 100;
       if (last_miner_hashrate < min_hashrate) {
-        err("Current miner hashrate " + last_miner_hashrate + " is below minimum " + min_hashrate + " hashrate theshold. Restarting it...");
+        err("Current miner hashrate " + last_miner_hashrate + " is below minimum " + min_hashrate + " hashrate threshold. Restarting it...");
         replace_miner(curr_miner);
       }
     }, 60*1000);
