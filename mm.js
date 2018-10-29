@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.3";
+const VERSION      = "v1.4";
 const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -43,6 +43,7 @@ const hashrate_regexes = [
   /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,        // for new xmrig
   /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/, // xmr-stak
   /Total Speed: ([\d\.]+) H\/s,/,                              // claymore
+  /\(Avr ([\d\.]+)H\/s\)/,                                     // CryptoDredge
 ];
 
 // basic algo for each algo class that is used for performance measurements
@@ -607,9 +608,10 @@ function do_miner_perf_runs(cb) {
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
         const test_blob_str = "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03";
+        let id = "id" in json ? json.id : 1;
         miner_socket.write(
-          '{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
-          '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n'
+          '{"id":' + id + ',"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
+          '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
        );
       };
       miner_proc = start_miner(cmd, function(str) {
@@ -801,7 +803,9 @@ function main() {
     if (curr_pool_socket && !curr_miner_socket) log("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was established due to new miner connection");
     curr_miner_socket = miner_socket;
     if (curr_pool_job1) {
-      miner_socket.write(JSON.stringify(curr_pool_job1) + "\n"); 
+      let curr_pool_job1_id = curr_pool_job1;
+      if ("id" in json) curr_pool_job1_id.id = json.id;
+      miner_socket.write(JSON.stringify(curr_pool_job1_id) + "\n");
     } else {
       err("No pool (" + c.pools[curr_pool_num] + ") job to send to the miner!");
     }
