@@ -463,7 +463,7 @@ function pool_new_msg(is_new_job, json) {
   if (is_new_job) {
     let next_algo = DEFAULT_ALGO;
     if ("params" in json && "algo" in json.params) next_algo = json.params.algo;
-    else if ("algo" in json.result.job) next_algo = json.result.job.algo;
+    else if ("result" in json && "algo" in json.result.job) next_algo = json.result.job.algo;
     if (!(next_algo in c.algos)) {
       err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
       return;
