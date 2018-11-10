@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.2";
+const VERSION      = "v1.4";
 const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -43,6 +43,7 @@ const hashrate_regexes = [
   /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,        // for new xmrig
   /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/, // xmr-stak
   /Total Speed: ([\d\.]+) H\/s,/,                              // claymore
+  /\(Avr ([\d\.]+)H\/s\)/,                                     // CryptoDredge
 ];
 
 // basic algo for each algo class that is used for performance measurements
@@ -101,6 +102,7 @@ let curr_miner_socket   = null;
 let curr_pool_socket    = null;
 let curr_pool_job1      = null;
 let curr_miner          = null;
+let next_miner_to_run   = null; // here we store miner command line that will be run after current miner is stopped or null if no miner is being stopped now
 let curr_pool_num       = 0;
 let last_miner_hashrate = null;
 let is_want_miner_kill  = false; // true if we want to kill miner (otherwise it is restart if closed without a reason)
@@ -423,7 +425,7 @@ function pool_ok(pool_num, pool_socket) {
     if (!main_pool_check_timer) set_main_pool_check_timer();
   } else {
     if (main_pool_check_timer) {
-      if (is_verbose_mode) log("Stopped main pool connection attemps since its connection was established");
+      if (is_verbose_mode) log("Stopped main pool connection attempts since its connection was established");
       clearTimeout(main_pool_check_timer);
       main_pool_check_timer = null;
     }
@@ -440,10 +442,18 @@ function pool_ok(pool_num, pool_socket) {
 
 function replace_miner(next_miner) {
   if (miner_proc) {
-    if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
-    miner_proc.on('close', (code) => { miner_proc = start_miner(next_miner, print_all_messages); });
-    is_want_miner_kill = true;
-    tree_kill(miner_proc.pid);
+    if (next_miner_to_run === null) {
+      next_miner_to_run = next_miner;
+      if (is_verbose_mode) log("Stopping '" + curr_miner + "' miner");
+      miner_proc.on('close', (code) => {
+        miner_proc = start_miner(next_miner_to_run, print_all_messages);
+        next_miner_to_run = null;
+      });
+      is_want_miner_kill = true;
+      tree_kill(miner_proc.pid);
+    } else {
+      next_miner_to_run = next_miner;
+    }
   } else {
     miner_proc = start_miner(next_miner, print_all_messages);
   }
@@ -485,7 +495,7 @@ function pool_new_msg(is_new_job, json) {
 }
 
 function pool_err(pool_num) {
-  if (pool_num === 0 && curr_pool_num) { // this is main pool attept error while we are on backup pool
+  if (pool_num === 0 && curr_pool_num) { // this is main pool attempt error while we are on backup pool
     if (!main_pool_check_timer) err("[INTERNAL ERROR] Unexpected main_pool_check_timer state in pool_err");
     set_main_pool_check_timer();
     return;
@@ -598,9 +608,10 @@ function do_miner_perf_runs(cb) {
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
         const test_blob_str = "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03";
+        let id = "id" in json ? json.id : 1;
         miner_socket.write(
-          '{"id":1,"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
-          '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"10000000","id":"benchmark"},"status":"OK"}}\n'
+          '{"id":' + id + ',"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
+          '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
        );
       };
       miner_proc = start_miner(cmd, function(str) {
@@ -792,7 +803,9 @@ function main() {
     if (curr_pool_socket && !curr_miner_socket) log("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was established due to new miner connection");
     curr_miner_socket = miner_socket;
     if (curr_pool_job1) {
-      miner_socket.write(JSON.stringify(curr_pool_job1) + "\n"); 
+      let curr_pool_job1_id = curr_pool_job1;
+      if ("id" in json) curr_pool_job1_id.id = json.id;
+      miner_socket.write(JSON.stringify(curr_pool_job1_id) + "\n");
     } else {
       err("No pool (" + c.pools[curr_pool_num] + ") job to send to the miner!");
     }
@@ -818,7 +831,7 @@ function main() {
       if (last_perf_class_change_time && Date.now() - last_perf_class_change_time < 15*60*1000) return;
       const min_hashrate = c.algo_perf[curr_perf_class] * c.hashrate_watchdog / 100;
       if (last_miner_hashrate < min_hashrate) {
-        err("Current miner hashrate " + last_miner_hashrate + " is below minimum " + min_hashrate + " hashrate theshold. Restarting it...");
+        err("Current miner hashrate " + last_miner_hashrate + " is below minimum " + min_hashrate + " hashrate threshold. Restarting it...");
         replace_miner(curr_miner);
       }
     }, 60*1000);
