@@ -320,7 +320,7 @@ function start_miner_raw(exe, args, out_cb) {
    last_miner_hashrate = null;
    last_perf_class_change_time = null;
    is_want_miner_kill = false;
-   let proc = child_process.spawn(exe, args, {});
+   let proc = child_process.spawn(exe, args, {stdio: ['inherit', 'pipe', 'pipe']});
 
    proc.stdout.on('data', (data) => {
      if (out_cb) out_cb(`${data}`);
