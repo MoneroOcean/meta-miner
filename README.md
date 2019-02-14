@@ -22,6 +22,7 @@ Options:
         --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
         --watchdog=<seconds> (-w):      restart miner if is does not submit work for <seconds> (600 by default, 0 to disable)
         --hashrate_watchdog=<percent>:  restart miner if is hashrate dropped below <percent> value of of its expected hashrate (0 by default to disable)
+        --miner_stdin:                  enables stdin (input) in miner
         --quiet (-q):                   do not show miner output during configuration and also less messages
         --verbose (-v):                 show more messages
         --debug:                        show pool and miner messages
@@ -72,7 +73,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
  "pass": "x",
  "log_file": null,
  "watchdog": 600,
- "hashrate_watchdog": 0
+ "hashrate_watchdog": 0,
+ "miner_stdin": false
 }
 ```
 

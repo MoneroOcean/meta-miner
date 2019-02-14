@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.6";
+const VERSION      = "v1.7";
 const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -96,6 +96,7 @@ let c = {
   log_file: null,
   watchdog: 600,
   hashrate_watchdog: 0,
+  miner_stdin: false,
 };
 
 let is_quiet_mode     = false;
@@ -326,7 +327,7 @@ function start_miner_raw(exe, args, out_cb) {
    last_miner_hashrate = null;
    last_perf_class_change_time = null;
    is_want_miner_kill = false;
-   let proc = child_process.spawn(exe, args, {stdio: ['inherit', 'pipe', 'pipe']});
+   let proc = child_process.spawn(exe, args, c.miner_stdin ? {stdio: ['inherit', 'pipe', 'pipe']} : {});
 
    proc.stdout.on('data', (data) => {
      if (out_cb) out_cb(`${data}`);
@@ -669,6 +670,7 @@ function print_help() {
   console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
   console.log("\t--watchdog=<seconds> (-w):     \trestart miner if is does not submit work for <seconds> (600 by default, 0 to disable)");
   console.log("\t--hashrate_watchdog=<percent>: \trestart miner if is hashrate dropped below <percent> value of of its expected hashrate (0 by default to disable)");
+  console.log("\t--miner_stdin:                 \tenables stdin (input) in miner");
   console.log("\t--quiet (-q):                  \tdo not show miner output during configuration and also less messages");
   console.log("\t--verbose (-v):                \tshow more messages");
   console.log("\t--debug:                       \tshow pool and miner messages");
@@ -723,6 +725,8 @@ function parse_argv(cb) {
       const percent = number > 100 ? 100 : number;
       if (is_verbose_mode) log("Setting hashrate watchdog timeout to " + (percent ? percent + "%" : "disabled"));
       c.hashrate_watchdog = percent;
+    } else if (m = val.match(/^(?:--miner_stdin)$/)) {
+      c.miner_stdin = true;
     } else if (m = val.match(/^(?:--pool|-p)=(.+)$/)) {
       if (m[1].split(/:/).length == 2) {
         if (is_verbose_mode) log("Added pool '" + m[1] + "' to the list of pools");
