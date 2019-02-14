@@ -16,7 +16,7 @@ Options:
         --port=<number>:                defines port that will be used for miner connections (3333 by default)
         --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
         --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
-        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn/2, cn, cn/half, cn-pico, cn-lite, cn-heavy
+        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn/2, cn, cn/half, cn/gpu, cn/wow, cn-pico, cn-lite, cn-heavy
         --algo_min_time=<seconds>       Sets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)
         --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
         --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
@@ -41,32 +41,32 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
    "gulf.moneroocean.stream:10001"
  ],
  "algos": {
-  "cn/1": "./xmrig --config=config.json",
-  "cn/2": "./xmrig --config=config.json",
-  "cn/0": "./xmrig --config=config.json",
-  "cn/xtl": "./xmrig --config=config.json",
-  "cn/msr": "./xmrig --config=config.json",
-  "cn/xao": "./xmrig --config=config.json",
-  "cn/rto": "./xmrig --config=config.json",
-  "cn/half": "./xmrig --config=config.json",
-  "cn/gpu": "./xmrig --config=config-gpu.json",
-  "cn/wow": "./xmrig --config=config-wow.json",
-  "cn-lite/1": "./xmrig --config=config-lite.json",
-  "cn-lite/0": "./xmrig --config=config-lite.json",
-  "cn-heavy/0": "./xmrig --config=config-heavy.json",
-  "cn-heavy/xhv": "./xmrig --config=config-heavy.json",
-  "cn-heavy/tube": "./xmrig --config=config-heavy.json",
-  "cn-pico/trtl": "./xmrig --config=config-pico.json"
+   "cn/1": "./xmrig --config=config.json",
+   "cn/2": "./xmrig --config=config.json",
+   "cn/0": "./xmrig --config=config.json",
+   "cn/xtl": "./xmrig --config=config.json",
+   "cn/msr": "./xmrig --config=config.json",
+   "cn/xao": "./xmrig --config=config.json",
+   "cn/rto": "./xmrig --config=config.json",
+   "cn/half": "./xmrig --config=config.json",
+   "cn/gpu": "./xmrig --config=config-gpu.json",
+   "cn/wow": "./xmrig --config=config-wow.json",
+   "cn-lite/1": "./xmrig --config=config-lite.json",
+   "cn-lite/0": "./xmrig --config=config-lite.json",
+   "cn-heavy/0": "./xmrig --config=config-heavy.json",
+   "cn-heavy/xhv": "./xmrig --config=config-heavy.json",
+   "cn-heavy/tube": "./xmrig --config=config-heavy.json",
+   "cn-pico/trtl": "./xmrig --config=config-pico.json"
  },
  "algo_perf": {
-  "cn/2": 35,
-  "cn": 33.9,
-  "cn/half": 72.6,
-  "cn/gpu": 72.6,
-  "cn/wow": 72.6,
-  "cn-pico": 490.7,
-  "cn-lite": 104.7,
-  "cn-heavy": 16.4
+   "cn/2": 37.4,
+   "cn": 36.3,
+   "cn/half": 73.5,
+   "cn/gpu": 6,
+   "cn/wow": 34,
+   "cn-pico": 394.7,
+   "cn-lite": 114.9,
+   "cn-heavy": 18.2
  },
  "user": "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1",
  "pass": "x",
@@ -101,7 +101,7 @@ Place mm.exe or mm.js (with nodejs installed) into unpacked miner directory eith
 
 ### Usage example with xmrig-amd on Windows
 
-* Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.10.0/xmrig-amd-2.10.0-msvc-win64.zip).
+* Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.12.0/xmrig-amd-2.12.0-msvc-win64.zip).
 
 * Modify config.json file in xmrig-amd directory this way and adjust it for the best threads performance (out of scope of this guide):
 
@@ -114,15 +114,19 @@ Place mm.exe or mm.js (with nodejs installed) into unpacked miner directory eith
 
 * Copy config.json to config-pico.json, put "algo" to "cryptonight-pico/trtl" in config-pico.json and adjust it for the best threads performance (out of scope of this guide).
 
+* Copy config.json to config-gpu.json, put "algo" to "cryptonight/gpu" in config-gpu.json and adjust it for the best threads performance (out of scope of this guide).
+
+* Copy config.json to config-wow.json, put "algo" to "cryptonight/wow" in config-wow.json and adjust it for the best threads performance (out of scope of this guide).
+
 * Run Meta Miner (or use "node mm.js" instead of mm.exe):
 
 ```shell
-mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" -m="xmrig-amd.exe --config=config-heavy.json" -m="xmrig-amd.exe --config=config-lite.json" -m="xmrig-amd.exe --config=config-pico.json"
+mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" -m="xmrig-amd.exe --config=config-heavy.json" -m="xmrig-amd.exe --config=config-lite.json" -m="xmrig-amd.exe --config=config-pico.json" -m="xmrig-amd.exe --config=config-gpu.json" -m="xmrig-amd.exe --config=config-wow.json"
 ```
 
 ### Usage example with xmr-stak (AMD only) on Windows
 
-* Download and unpack the lastest xmr-stak (https://github.com/fireice-uk/xmr-stak/releases/download/2.5.1/xmr-stak-win64.zip).
+* Download and unpack the lastest xmr-stak (https://github.com/fireice-uk/xmr-stak/releases/download/2.8.2/xmr-stak-win64-2.8.2.zip).
 
 * Configure xmr-stak this way (put your Monero address):
 
@@ -138,17 +142,17 @@ localhost:3333
 
 * Enable hashrate output by setting "verbose_level" to 4 in config.txt so it can be collected by mm.js (also set "flush_stdout" to true for older xmr-stak versions).
 
-* Copy amd.txt to amd-lite.txt and amd-heavy.txt and adjust all of them for the best threads performance (out of scope of this guide).
+* Copy amd.txt to amd-lite.txt, amd-heavy.txt, amd-gpu.txt and amd-pico.txt and adjust all of them for the best threads performance (out of scope of this guide).
 
 * Run Meta Miner (or use "node mm.js" instead of mm.exe):
 
 ```shell
-mm.exe -p=gulf.moneroocean.stream:10001 --cn/1="xmr-stak.exe --noCPU --currency cryptonight_v8 --amd amd.txt" --cn/msr="xmr-stak.exe --noCPU --currency cryptonight_masari --amd amd.txt" --cn-lite/1="xmr-stak.exe --noCPU --currency cryptonight_lite_v7 --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --noCPU --currency cryptonight_heavy --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --noCPU --currency cryptonight_haven --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --noCPU --currency cryptonight_bittube2 --amd amd-heavy.txt"
+mm.exe -p=gulf.moneroocean.stream:10001 --cn/2="xmr-stak.exe --noCPU --currency cryptonight_v8 --amd amd.txt" --cn/msr="xmr-stak.exe --noCPU --currency cryptonight_masari --amd amd.txt" --cn-lite/1="xmr-stak.exe --noCPU --currency cryptonight_lite_v7 --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --noCPU --currency cryptonight_heavy --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --noCPU --currency cryptonight_haven --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --noCPU --currency cryptonight_bittube2 --amd amd-heavy.txt" --cn/gpu="xmr-stak.exe --noCPU --currency cryptonight_gpu --amd amd-gpu.txt" --cn-pico/trtl="xmr-stak.exe --noCPU --currency cryptonight_turtle --amd amd-pico.txt"
 ```
-* To run Meta Miner for xmr-stak CPU/GPU use this command:
+* To run Meta Miner for xmr-stak CPU/GPU use this command (need to create cpu-*.txt configs for CPU in this case as well based on cpu.txt with adjusted thread configuration):
 
 ```shell
-mm.exe -p=gulf.moneroocean.stream:10001 --cn/1="xmr-stak.exe --currency cryptonight_v8 --cpu cpu.txt --amd amd.txt" --cn/msr="xmr-stak.exe --currency cryptonight_masari --cpu cpu.txt --amd amd.txt" --cn-lite/1="xmr-stak.exe --currency cryptonight_lite_v7 --cpu cpu-lite.txt --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --currency cryptonight_heavy --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --currency cryptonight_haven --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --currency cryptonight_bittube2 --cpu cpu-heavy.txt --amd amd-heavy.txt"
+mm.exe -p=gulf.moneroocean.stream:10001 --cn/2="xmr-stak.exe --currency cryptonight_v8 --cpu cpu.txt --amd amd.txt" --cn/msr="xmr-stak.exe --currency cryptonight_masari --cpu cpu.txt --amd amd.txt" --cn-lite/1="xmr-stak.exe --currency cryptonight_lite_v7 --cpu cpu-lite.txt --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --currency cryptonight_heavy --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --currency cryptonight_haven --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --currency cryptonight_bittube2 --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn/gpu="xmr-stak.exe --currency cryptonight_gpu --cpu cpu-gpu.txt --amd amd-gpu.txt" --cn-pico/trtl="xmr-stak.exe --currency cryptonight_turtle --cpu cpu-pico.txt --amd amd-pico.txt"
 ```
 
 ## Usage examples on Linux (Ubuntu 16.04)
@@ -167,9 +171,9 @@ chmod +x mm.js
 * Get xmrig:
 
 ```shell
-wget https://github.com/xmrig/xmrig-amd/releases/download/v2.10.0/xmrig-amd-2.10.0-xenial-x64.tar.gz
-tar xf xmrig-2.10.0-xenial-amd64.tar.gz
-cd xmrig-2.10.0/
+wget https://github.com/xmrig/xmrig-amd/releases/download/v2.12.0/xmrig-amd-2.12.0-xenial-x64.tar.gz
+tar xf xmrig-2.12.0-xenial-amd64.tar.gz
+cd xmrig-2.12.0/
 ```
 
 * Prepare configs for different algorithms (put your Monero address):
@@ -179,18 +183,31 @@ sed -i 's/"url": *"[^"]*",/"url": "localhost:3333",/' config.json
 sed -i 's/"user": *"[^"]*",/"user": "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1",/' config.json
 cp config.json config-heavy.json
 cp config.json config-lite.json
+cp config.json config-pico.json
+cp config.json config-gpu.json
+cp config.json config-wow.json
 sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-heavy\/0",/' config-heavy.json
 sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-lite\/1",/' config-lite.json
 sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-pico\/trtl",/' config-pico.json
+sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight\/gpu",/' config-gpu.json
+sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight\/wow",/' config-wow.json
 ```
 
 * Run Meta Miner:
 
 ```shell
-./mm.js -p=gulf.moneroocean.stream:10001 -m="./xmrig --config=config.json" -m="./xmrig --config=config-heavy.json" -m="./xmrig --config=config-lite.json" -m="./xmrig --config=config-pico.json"
+./mm.js -p=gulf.moneroocean.stream:10001 -m="./xmrig --config=config.json" -m="./xmrig --config=config-heavy.json" -m="./xmrig --config=config-lite.json" -m="./xmrig --config=config-pico.json" -m="./xmrig --config=config-gpu.json" -m="./xmrig --config=config-wow.json"
 ```
 
 ### Usage example with xmr-stak (CPU only) on Linux
+
+* Get xmr-stak:
+
+```shell
+wget https://github.com/fireice-uk/xmr-stak/releases/download/2.8.2/xmr-stak-linux-2.8.2-cpu.tar.xz
+tar xf xmr-stak-linux-2.8.2-cpu.tar.xz
+cd xmr-stak-linux-2.8.2-cpu
+```
 
 * Configure xmr-stak this way (put your Monero address):
 
@@ -216,12 +233,14 @@ sed -i 's/"flush_stdout" : false,/"flush_stdout" : true,/' config.txt
 ```shell
 cp cpu.txt cpu-lite.txt
 cp cpu.txt cpu-heavy.txt
+cp cpu.txt cpu-pico.txt
+cp cpu.txt cpu-gpu.txt
 ```
 
 * Run Meta Miner:
 
 ```shell
-./mm.js -p=gulf.moneroocean.stream:10001 --cn/1="./bin/xmr-stak --currency cryptonight_v8 --cpu cpu.txt" --cn/msr="./bin/xmr-stak --currency cryptonight_masari --cpu cpu.txt" --cn-lite/1="./bin/xmr-stak --currency cryptonight_lite_v7 --cpu cpu-lite.txt" --cn-heavy/0="./bin/xmr-stak --currency cryptonight_heavy --cpu cpu-heavy.txt" --cn-heavy/xhv="./bin/xmr-stak --currency cryptonight_haven --cpu cpu-heavy.txt" --cn-heavy/tube="./bin/xmr-stak --currency cryptonight_bittube2 --cpu cpu-heavy.txt"
+./mm.js -p=gulf.moneroocean.stream:10001 --cn/2="./bin/xmr-stak --currency cryptonight_v8 --cpu cpu.txt" --cn/msr="./bin/xmr-stak --currency cryptonight_masari --cpu cpu.txt" --cn-lite/1="./bin/xmr-stak --currency cryptonight_lite_v7 --cpu cpu-lite.txt" --cn-heavy/0="./bin/xmr-stak --currency cryptonight_heavy --cpu cpu-heavy.txt" --cn-heavy/xhv="./bin/xmr-stak --currency cryptonight_haven --cpu cpu-heavy.txt" --cn-heavy/tube="./bin/xmr-stak --currency cryptonight_bittube2 --cpu cpu-heavy.txt" --cn/half="./bin/xmr-stak --currency cryptonight_v8_half --cpu cpu.txt" --cn/gpu="./bin/xmr-stak --currency cryptonight_gpu --cpu cpu-gpu.txt" --cn-pico/trtl="./bin/xmr-stak --currency cryptonight_turtle --cpu cpu-pico.txt"
 ```
 
 ## Developer Donations
