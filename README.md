@@ -74,7 +74,6 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
  "log_file": null,
  "watchdog": 600,
  "hashrate_watchdog": 0,
- "miner_stdin": false
 }
 ```
 

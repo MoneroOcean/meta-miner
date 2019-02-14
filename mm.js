@@ -96,13 +96,13 @@ let c = {
   log_file: null,
   watchdog: 600,
   hashrate_watchdog: 0,
-  miner_stdin: false,
 };
 
 let is_quiet_mode     = false;
 let is_verbose_mode   = false;
 let is_no_config_save = false;
 let is_debug          = false;
+let is_miner_stdin    = false;
 
 // *****************************************************************************
 // *** WORKING STATE                                                         ***
@@ -327,7 +327,7 @@ function start_miner_raw(exe, args, out_cb) {
    last_miner_hashrate = null;
    last_perf_class_change_time = null;
    is_want_miner_kill = false;
-   let proc = child_process.spawn(exe, args, c.miner_stdin ? {stdio: ['inherit', 'pipe', 'pipe']} : {});
+   let proc = child_process.spawn(exe, args, is_miner_stdin ? {stdio: ['inherit', 'pipe', 'pipe']} : {});
 
    proc.stdout.on('data', (data) => {
      if (out_cb) out_cb(`${data}`);
@@ -726,7 +726,7 @@ function parse_argv(cb) {
       if (is_verbose_mode) log("Setting hashrate watchdog timeout to " + (percent ? percent + "%" : "disabled"));
       c.hashrate_watchdog = percent;
     } else if (m = val.match(/^(?:--miner_stdin)$/)) {
-      c.miner_stdin = true;
+      is_miner_stdin = true;
     } else if (m = val.match(/^(?:--pool|-p)=(.+)$/)) {
       if (m[1].split(/:/).length == 2) {
         if (is_verbose_mode) log("Added pool '" + m[1] + "' to the list of pools");
