@@ -84,6 +84,8 @@ let c = {
     "cn/2":     0,
     "cn":       0,
     "cn/half":  0,
+    "cn/gpu":   0,
+    "cn/wow":   0,
     "cn-pico":  0,
     "cn-lite":  0,
     "cn-heavy": 0,
