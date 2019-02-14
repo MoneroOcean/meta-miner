@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.5";
+const VERSION      = "v1.6";
 const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -51,6 +51,8 @@ const algo_perf_algo = {
   "cn/2":     "cn/2",
   "cn":       "cn/1",
   "cn/half":  "cn/half",
+  "cn/gpu":   "cn/gpu",
+  "cn/wow":   "cn/wow",
   "cn-pico":  "cn-pico/trtl",
   "cn-lite":  "cn-lite/1",
   "cn-heavy": "cn-heavy/0",
@@ -60,6 +62,8 @@ function algo_perf_class(algo) { // converts algo to algo class
    if (algo.indexOf("heavy") > -1) return "cn-heavy";
    if (algo.indexOf("lite")  > -1) return "cn-lite";
    if (algo.indexOf("half")  > -1) return "cn/half";
+   if (algo.indexOf("gpu")   > -1) return "cn/gpu";
+   if (algo.indexOf("wow")   > -1) return "cn/wow";
    if (algo.indexOf("pico")  > -1) return "cn-pico";
    if (algo.indexOf("cn/2")  > -1) return "cn/2";
    return "cn";

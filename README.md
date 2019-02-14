@@ -49,6 +49,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "cn/xao": "./xmrig --config=config.json",
   "cn/rto": "./xmrig --config=config.json",
   "cn/half": "./xmrig --config=config.json",
+  "cn/gpu": "./xmrig --config=config-gpu.json",
+  "cn/wow": "./xmrig --config=config-wow.json",
   "cn-lite/1": "./xmrig --config=config-lite.json",
   "cn-lite/0": "./xmrig --config=config-lite.json",
   "cn-heavy/0": "./xmrig --config=config-heavy.json",
@@ -60,6 +62,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "cn/2": 35,
   "cn": 33.9,
   "cn/half": 72.6,
+  "cn/gpu": 72.6,
+  "cn/wow": 72.6,
   "cn-pico": 490.7,
   "cn-lite": 104.7,
   "cn-heavy": 16.4
