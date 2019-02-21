@@ -48,6 +48,7 @@ const hashrate_regexes = [
 
 // basic algo for each algo class that is used for performance measurements
 const algo_perf_algo = {
+  "cn/4":     "cn/4",
   "cn/2":     "cn/2",
   "cn":       "cn/1",
   "cn/half":  "cn/half",
@@ -66,6 +67,7 @@ function algo_perf_class(algo) { // converts algo to algo class
    if (algo.indexOf("wow")   > -1) return "cn/wow";
    if (algo.indexOf("pico")  > -1) return "cn-pico";
    if (algo.indexOf("cn/2")  > -1) return "cn/2";
+   if (algo.indexOf("cn/4")  > -1) return "cn/4";
    return "cn";
 }
 
@@ -81,6 +83,7 @@ let c = {
   pools: [],
   algos: {},
   algo_perf: {
+    "cn/4":     0,
     "cn/2":     0,
     "cn":       0,
     "cn/half":  0,
