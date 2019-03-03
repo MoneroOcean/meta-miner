@@ -127,7 +127,7 @@ mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" 
 
 ### Usage example with xmr-stak (AMD only) on Windows
 
-* Download and unpack the lastest xmr-stak (https://github.com/fireice-uk/xmr-stak/releases/download/2.8.2/xmr-stak-win64-2.8.2.zip).
+* Download and unpack the lastest xmr-stak (https://github.com/fireice-uk/xmr-stak/releases/download/2.9.0/xmr-stak-win64-2.9.0.zip).
 
 * Configure xmr-stak this way (put your Monero address):
 
@@ -148,12 +148,12 @@ localhost:3333
 * Run Meta Miner (or use "node mm.js" instead of mm.exe):
 
 ```shell
-mm.exe -p=gulf.moneroocean.stream:10001 --cn/2="xmr-stak.exe --noCPU --currency cryptonight_v8 --amd amd.txt" --cn/msr="xmr-stak.exe --noCPU --currency cryptonight_masari --amd amd.txt" --cn-lite/1="xmr-stak.exe --noCPU --currency cryptonight_lite_v7 --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --noCPU --currency cryptonight_heavy --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --noCPU --currency cryptonight_haven --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --noCPU --currency cryptonight_bittube2 --amd amd-heavy.txt" --cn/gpu="xmr-stak.exe --noCPU --currency cryptonight_gpu --amd amd-gpu.txt" --cn-pico/trtl="xmr-stak.exe --noCPU --currency cryptonight_turtle --amd amd-pico.txt"
+mm.exe -p=gulf.moneroocean.stream:10001 --cn/r="xmr-stak.exe --noCPU --currency cryptonight_r --amd amd.txt" --cn/2="xmr-stak.exe --noCPU --currency cryptonight_v8 --amd amd.txt" --cn/msr="xmr-stak.exe --noCPU --currency cryptonight_masari --amd amd.txt" --cn-lite/1="xmr-stak.exe --noCPU --currency cryptonight_lite_v7 --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --noCPU --currency cryptonight_heavy --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --noCPU --currency cryptonight_haven --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --noCPU --currency cryptonight_bittube2 --amd amd-heavy.txt" --cn/gpu="xmr-stak.exe --noCPU --currency cryptonight_gpu --amd amd-gpu.txt" --cn-pico/trtl="xmr-stak.exe --noCPU --currency cryptonight_turtle --amd amd-pico.txt"
 ```
 * To run Meta Miner for xmr-stak CPU/GPU use this command (need to create cpu-*.txt configs for CPU in this case as well based on cpu.txt with adjusted thread configuration):
 
 ```shell
-mm.exe -p=gulf.moneroocean.stream:10001 --cn/2="xmr-stak.exe --currency cryptonight_v8 --cpu cpu.txt --amd amd.txt" --cn/msr="xmr-stak.exe --currency cryptonight_masari --cpu cpu.txt --amd amd.txt" --cn-lite/1="xmr-stak.exe --currency cryptonight_lite_v7 --cpu cpu-lite.txt --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --currency cryptonight_heavy --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --currency cryptonight_haven --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --currency cryptonight_bittube2 --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn/gpu="xmr-stak.exe --currency cryptonight_gpu --cpu cpu-gpu.txt --amd amd-gpu.txt" --cn-pico/trtl="xmr-stak.exe --currency cryptonight_turtle --cpu cpu-pico.txt --amd amd-pico.txt"
+mm.exe -p=gulf.moneroocean.stream:10001 --cn/r="xmr-stak.exe --noCPU --currency cryptonight_r --amd amd.txt" --cn/2="xmr-stak.exe --currency cryptonight_v8 --cpu cpu.txt --amd amd.txt" --cn/msr="xmr-stak.exe --currency cryptonight_masari --cpu cpu.txt --amd amd.txt" --cn-lite/1="xmr-stak.exe --currency cryptonight_lite_v7 --cpu cpu-lite.txt --amd amd-lite.txt" --cn-heavy/0="xmr-stak.exe --currency cryptonight_heavy --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/xhv="xmr-stak.exe --currency cryptonight_haven --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn-heavy/tube="xmr-stak.exe --currency cryptonight_bittube2 --cpu cpu-heavy.txt --amd amd-heavy.txt" --cn/gpu="xmr-stak.exe --currency cryptonight_gpu --cpu cpu-gpu.txt --amd amd-gpu.txt" --cn-pico/trtl="xmr-stak.exe --currency cryptonight_turtle --cpu cpu-pico.txt --amd amd-pico.txt"
 ```
 
 ## Usage examples on Linux (Ubuntu 16.04)
@@ -203,9 +203,9 @@ sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight\/gpu",/' config-gpu.json
 * Get xmr-stak:
 
 ```shell
-wget https://github.com/fireice-uk/xmr-stak/releases/download/2.8.2/xmr-stak-linux-2.8.2-cpu.tar.xz
-tar xf xmr-stak-linux-2.8.2-cpu.tar.xz
-cd xmr-stak-linux-2.8.2-cpu
+wget https://github.com/fireice-uk/xmr-stak/releases/download/2.9.0/xmr-stak-linux-2.9.0-cpu.tar.xz
+tar xf xmr-stak-linux-2.9.0-cpu.tar.xz
+cd xmr-stak-linux-2.9.0-cpu
 ```
 
 * Configure xmr-stak this way (put your Monero address):
