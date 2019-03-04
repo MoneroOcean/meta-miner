@@ -134,7 +134,7 @@ mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" 
 ```
 - Please enter the currency that you want to mine:
   ...
-cryptonight_v8
+cryptonight_r
 - Pool address: e.g. pool.example.com:3333
 localhost:3333
 - Username (wallet address or pool login):
@@ -213,7 +213,7 @@ cd xmr-stak-linux-2.9.0-cpu
 ```
 - Please enter the currency that you want to mine:
   ...
-cryptonight_v8
+cryptonight_r
 - Pool address: e.g. pool.example.com:3333
 localhost:3333
 - Username (wallet address or pool login):
