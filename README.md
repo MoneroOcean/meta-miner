@@ -109,7 +109,7 @@ Place mm.exe or mm.js (with nodejs installed) into unpacked miner directory eith
 
 ### Usage example with xmrig-amd on Windows
 
-* Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.14.0/xmrig-amd-2.14.0-msvc-win64.zip).
+* Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.14.1/xmrig-amd-2.14.1-msvc-win64.zip).
 
 * Modify config.json file in xmrig-amd directory this way and adjust it for the best threads performance (out of scope of this guide):
 
@@ -177,9 +177,9 @@ chmod +x mm.js
 * Get xmrig:
 
 ```shell
-wget https://github.com/xmrig/xmrig-amd/releases/download/v2.14.0/xmrig-amd-2.14.0-xenial-x64.tar.gz
-tar xf xmrig-2.14.0-xenial-amd64.tar.gz
-cd xmrig-2.14.0/
+wget https://github.com/xmrig/xmrig-amd/releases/download/v2.14.1/xmrig-amd-2.14.1-xenial-x64.tar.gz
+tar xf xmrig-2.14.1-xenial-amd64.tar.gz
+cd xmrig-2.14.1/
 ```
 
 * Prepare configs for different algorithms (put your Monero address):
