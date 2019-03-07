@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.8";
+const VERSION      = "v1.9";
 const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -48,26 +48,31 @@ const hashrate_regexes = [
 
 // basic algo for each algo class that is used for performance measurements
 const algo_perf_algo = {
-  "cn/r":     "cn/r",
-  "cn/2":     "cn/2",
-  "cn":       "cn/1",
-  "cn/half":  "cn/half",
-  "cn/gpu":   "cn/gpu",
-  "cn/wow":   "cn/wow",
-  "cn-pico":  "cn-pico/trtl",
-  "cn-lite":  "cn-lite/1",
-  "cn-heavy": "cn-heavy/0",
+  "cn/r":      "cn/r",
+  "cn/2":      "cn/2",
+  "cn":        "cn/1",
+  "cn/half":   "cn/half",
+  "cn/rwz":    "cn/rwz",
+  "cn/zls":    "cn/zls",
+  "cn/double": "cn/double",
+  "cn/gpu":    "cn/gpu",
+  "cn-pico":   "cn-pico/trtl",
+  "cn-lite":   "cn-lite/1",
+  "cn-heavy":  "cn-heavy/0",
 };
 
 function algo_perf_class(algo) { // converts algo to algo class
-   if (algo.indexOf("heavy") > -1) return "cn-heavy";
-   if (algo.indexOf("lite")  > -1) return "cn-lite";
-   if (algo.indexOf("half")  > -1) return "cn/half";
-   if (algo.indexOf("gpu")   > -1) return "cn/gpu";
-   if (algo.indexOf("wow")   > -1) return "cn/wow";
-   if (algo.indexOf("pico")  > -1) return "cn-pico";
-   if (algo.indexOf("cn/2")  > -1) return "cn/2";
-   if (algo.indexOf("cn/r")  > -1) return "cn/r";
+   if (algo.indexOf("heavy")  > -1) return "cn-heavy";
+   if (algo.indexOf("lite")   > -1) return "cn-lite";
+   if (algo.indexOf("half")   > -1) return "cn/half";
+   if (algo.indexOf("gpu")    > -1) return "cn/gpu";
+   if (algo.indexOf("wow")    > -1) return "cn/r";
+   if (algo.indexOf("rwz")    > -1) return "cn/rwz";
+   if (algo.indexOf("zls")    > -1) return "cn/zls";
+   if (algo.indexOf("double") > -1) return "cn/double";
+   if (algo.indexOf("pico")   > -1) return "cn-pico";
+   if (algo.indexOf("cn/2")   > -1) return "cn/2";
+   if (algo.indexOf("cn/r")   > -1) return "cn/r";
    return "cn";
 }
 
@@ -83,15 +88,17 @@ let c = {
   pools: [],
   algos: {},
   algo_perf: {
-    "cn/r":     0,
-    "cn/2":     0,
-    "cn":       0,
-    "cn/half":  0,
-    "cn/gpu":   0,
-    "cn/wow":   0,
-    "cn-pico":  0,
-    "cn-lite":  0,
-    "cn-heavy": 0,
+    "cn/r":      0,
+    "cn/2":      0,
+    "cn":        0,
+    "cn/half":   0,
+    "cn/rwz":    0,
+    "cn/zls":    0,
+    "cn/double": 0,
+    "cn/gpu":    0,
+    "cn-pico":   0,
+    "cn-lite":   0,
+    "cn-heavy":  0,
   },
   algo_min_time: 0,
   user: null,
