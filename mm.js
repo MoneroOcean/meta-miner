@@ -38,12 +38,17 @@ const VERSION      = "v1.9";
 const DEFAULT_ALGO = "cn/2"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
+// [multiplier, nr benchmark prints, regex]
+// the multiplier is for supporting hashrate prints in different units
+// the nr benchmark prints is to make sure hashrate has stabilized before snapping the benchmark value
 const hashrate_regexes = [
-  /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,       // for old xmrig
-  /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/,        // for new xmrig
-  /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/, // xmr-stak
-  /Total Speed: ([\d\.]+) H\/s,/,                              // claymore
-  /\(Avr ([\d\.]+)H\/s\)/,                                     // CryptoDredge
+  [1,   1, /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],       // for old xmrig
+  [1,   1, /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for new xmrig
+  [1,   1, /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/], // xmr-stak
+  [1,   1, /Total Speed: ([\d\.]+) H\/s,/],                              // claymore
+  [1,   1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
+  [1e3, 3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
+  [1,   3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
 ];
 
 // basic algo for each algo class that is used for performance measurements
@@ -263,8 +268,8 @@ function print_all_messages(str) {
     const str2 = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
     for (let i in hashrate_regexes) {
       const hashrate_regex = hashrate_regexes[i];
-      const m = str2.match(hashrate_regex);
-      if (m) last_miner_hashrate = parseFloat(m[1]);
+      const m = str2.match(hashrate_regex[2]);
+      if (m) last_miner_hashrate = parseFloat(m[1]) * hashrate_regex[0];
     }
   }
 }
@@ -634,19 +639,27 @@ function do_miner_perf_runs(cb) {
           '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
        );
       };
+      let nr_prints_needed = -1;
+      let nr_prints_found = 0;
       miner_proc = start_miner(cmd, function(str) {
         print_messages(str);
         str = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
         for (let i in hashrate_regexes) {
           const hashrate_regex = hashrate_regexes[i];
-          const m = str.match(hashrate_regex);
+          const m = str.match(hashrate_regex[2]);
           if (m) {
-            const hashrate = parseFloat(m[1]);
-            log("Setting performance for " + algo_class + " algo class to " + hashrate);
-            c.algo_perf[algo_class] = hashrate;
-            miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
-            tree_kill(miner_proc.pid);
-            break;
+            if (nr_prints_needed < 0) nr_prints_needed = hashrate_regex[1];
+            const hashrate = parseFloat(m[1]) * hashrate_regex[0];
+            if (++nr_prints_found >= nr_prints_needed) {
+              log("Setting performance for " + algo_class + " algo class to " + hashrate);
+              c.algo_perf[algo_class] = hashrate;
+              miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
+              tree_kill(miner_proc.pid);
+              break;
+            } else {
+              log("Read performance for " + algo_class + " algo class to " + hashrate + ", waiting for " + 
+                     (nr_prints_needed - nr_prints_found) + " more print(s).");
+            }
           }
         }
       });
