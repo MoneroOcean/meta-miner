@@ -113,6 +113,7 @@ let is_verbose_mode   = false;
 let is_no_config_save = false;
 let is_debug          = false;
 let is_miner_stdin    = false;
+let is_testing_hashes = false;
 
 // *****************************************************************************
 // *** WORKING STATE                                                         ***
@@ -278,6 +279,7 @@ function print_messages(str) {
 let miner_server = net.createServer(function (miner_socket) {
   if (curr_miner_socket) {
     err("Miner server on " + c.miner_host + ":" + c.miner_port + " port is already connected (please make sure you do not have other miner running)");
+    miner_socket.end();
     return;
   }
   if (is_verbose_mode) log("Miner server on " + c.miner_host + ":" + c.miner_port + " port connected from " + miner_socket.remoteAddress);
@@ -350,6 +352,8 @@ function start_miner_raw(exe, args, out_cb) {
        if (code) err("Miner '" + cmd + "' exited with nonzero code " + code);
        else log("Miner '" + cmd + "' exited with zero code");
      }
+     if (is_testing_hashes) out_cb(false,code);
+     else
      if (curr_pool_socket && !is_want_miner_kill) {
        log("Restarting '" + cmd + "' miner that was closed unexpectedly");
        miner_proc = start_miner_raw(exe, args, out_cb);
@@ -614,10 +618,11 @@ function check_miners(smart_miners, miners, cb) {
 // *** Miner performance runs
 
 function do_miner_perf_runs(cb) {
+  is_testing_hashes = true;
   let miner_perf_runs = [];
   for (let algo_class in c.algo_perf) {
     if (c.algo_perf[algo_class] || !(algo_perf_algo[algo_class] in c.algos)) continue;
-    miner_perf_runs.push(function(resolve) {
+    let perfCheck = function(resolve) {
       log("Checking miner performance for " + algo_class + " algo class");
       const cmd = c.algos[algo_perf_algo[algo_class]];
       let miner_proc = null;
@@ -634,7 +639,14 @@ function do_miner_perf_runs(cb) {
           '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
        );
       };
-      miner_proc = start_miner(cmd, function(str) {
+      miner_proc = start_miner(cmd, function(str,code) {
+        if ('boolean' === typeof str) { // test miner premature close
+          log("Miner failed with code " + code + ", retrying");
+          clearTimeout(timeout);
+          tree_kill(miner_proc.pid);
+          miner_perf_runs.unshift(perfCheck);
+          resolve();
+        }
         print_messages(str);
         str = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
         for (let i in hashrate_regexes) {
@@ -650,11 +662,15 @@ function do_miner_perf_runs(cb) {
           }
         }
       });
-    });
+    }
+    miner_perf_runs.push(perfCheck);
   }
 
   function next_miner_perf_run() {
-    if (miner_perf_runs.length === 0) return cb();
+    if (miner_perf_runs.length === 0){
+      is_testing_hashes = false;
+      return cb();
+    }
     const miner_perf_run = miner_perf_runs.shift();
     miner_perf_run(next_miner_perf_run);
   }
