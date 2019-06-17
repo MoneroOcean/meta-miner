@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v1.9";
+const VERSION      = "v2.0";
 const DEFAULT_ALGO = "cn/r"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -59,6 +59,7 @@ const algo_perf_algo = {
   "cn-pico":   "cn-pico/trtl",
   "cn-lite":   "cn-lite/1",
   "cn-heavy":  "cn-heavy/0",
+  "rx/wow":    "rx/wow",
 };
 
 function algo_perf_class(algo) { // converts algo to algo class
@@ -66,7 +67,7 @@ function algo_perf_class(algo) { // converts algo to algo class
    if (algo.indexOf("lite")   > -1) return "cn-lite";
    if (algo.indexOf("half")   > -1) return "cn/half";
    if (algo.indexOf("gpu")    > -1) return "cn/gpu";
-   if (algo.indexOf("wow")    > -1) return "cn/r";
+   if (algo.indexOf("wow")    > -1) return "rx/wow";
    if (algo.indexOf("rwz")    > -1) return "cn/rwz";
    if (algo.indexOf("zls")    > -1) return "cn/zls";
    if (algo.indexOf("double") > -1) return "cn/double";
@@ -99,6 +100,7 @@ let c = {
     "cn-pico":   0,
     "cn-lite":   0,
     "cn-heavy":  0,
+    "rx/wow":    0,
   },
   algo_min_time: 0,
   user: null,
@@ -631,7 +633,7 @@ function do_miner_perf_runs(cb) {
         let id = "id" in json ? json.id : 1;
         miner_socket.write(
           '{"id":' + id + ',"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
-          '","algo":"' + algo_perf_algo[algo_class] + '","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
+          '","algo":"' + algo_perf_algo[algo_class] + '","height":0,"seed_hash":"0000000000000000000000000000000000000000000000000000000000000000","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
        );
       };
       miner_proc = start_miner(cmd, function(str) {

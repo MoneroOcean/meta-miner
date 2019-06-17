@@ -16,7 +16,7 @@ Options:
         --port=<number>:                defines port that will be used for miner connections (3333 by default)
         --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
         --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
-        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn/2, cn/r, cn, cn/half, cn/rwz, cn/zls, cn/double, cn/gpu, cn-pico, cn-lite, cn-heavy
+        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn/r, cn/2, cn, cn/half, cn/rwz, cn/zls, cn/double, cn/gpu, cn-pico, cn-lite, cn-heavy, rx/wow
         --algo_min_time=<seconds>       Sets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)
         --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
         --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
@@ -61,7 +61,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
    "cn-heavy/0": "./xmrig --config=config-heavy.json",
    "cn-heavy/xhv": "./xmrig --config=config-heavy.json",
    "cn-heavy/tube": "./xmrig --config=config-heavy.json",
-   "cn-pico/trtl": "./xmrig --config=config-pico.json"
+   "cn-pico/trtl": "./xmrig --config=config-pico.json",
+   "rx/wow": "./xmrig --config=config-randomwow.json",
  },
  "algo_perf": {
    "cn/r": 34,
@@ -191,16 +192,18 @@ cp config.json config-heavy.json
 cp config.json config-lite.json
 cp config.json config-pico.json
 cp config.json config-gpu.json
+cp config.json config-randomwow.json
 sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-heavy\/0",/' config-heavy.json
 sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-lite\/1",/' config-lite.json
 sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-pico\/trtl",/' config-pico.json
 sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight\/gpu",/' config-gpu.json
+sed -i 's/"algo": *"[^"]*",/"algo": "randomx\/wow",/' config-randomwow.json
 ```
 
 * Run Meta Miner:
 
 ```shell
-./mm.js -p=gulf.moneroocean.stream:10001 -m="./xmrig --config=config.json" -m="./xmrig --config=config-heavy.json" -m="./xmrig --config=config-lite.json" -m="./xmrig --config=config-pico.json" -m="./xmrig --config=config-gpu.json" -m="./xmrig --config=config.json"
+./mm.js -p=gulf.moneroocean.stream:10001 -m="./xmrig --config=config.json" -m="./xmrig --config=config-heavy.json" -m="./xmrig --config=config-lite.json" -m="./xmrig --config=config-pico.json" -m="./xmrig --config=config-gpu.json"
 ```
 
 ### Usage example with xmr-stak (CPU only) on Linux
