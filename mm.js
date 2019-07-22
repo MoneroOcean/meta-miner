@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v2.0";
+const VERSION      = "v2.1";
 const DEFAULT_ALGO = "cn/r"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -46,35 +46,58 @@ const hashrate_regexes = [
   /\(Avr ([\d\.]+)H\/s\)/,                                     // CryptoDredge
 ];
 
-// basic algo for each algo class that is used for performance measurements
-const algo_perf_algo = {
-  "cn/r":      "cn/r",
-  "cn/2":      "cn/2",
-  "cn":        "cn/1",
-  "cn/half":   "cn/half",
-  "cn/rwz":    "cn/rwz",
-  "cn/zls":    "cn/zls",
-  "cn/double": "cn/double",
-  "cn/gpu":    "cn/gpu",
-  "cn-pico":   "cn-pico/trtl",
-  "cn-lite":   "cn-lite/1",
-  "cn-heavy":  "cn-heavy/0",
-  "rx/wow":    "rx/wow",
-};
+// main algos we bench for
+const bench_algos = [
+  "cn/r",
+  "cn/gpu",
+  "cn-pico/trtl",
+  "cn-lite/1",
+  "cn-heavy/xhv",
+  "rx/wow",
+  "rx/0",
+];
 
-function algo_perf_class(algo) { // converts algo to algo class
-   if (algo.indexOf("heavy")  > -1) return "cn-heavy";
-   if (algo.indexOf("lite")   > -1) return "cn-lite";
-   if (algo.indexOf("half")   > -1) return "cn/half";
-   if (algo.indexOf("gpu")    > -1) return "cn/gpu";
-   if (algo.indexOf("wow")    > -1) return "rx/wow";
-   if (algo.indexOf("rwz")    > -1) return "cn/rwz";
-   if (algo.indexOf("zls")    > -1) return "cn/zls";
-   if (algo.indexOf("double") > -1) return "cn/double";
-   if (algo.indexOf("pico")   > -1) return "cn-pico";
-   if (algo.indexOf("cn/2")   > -1) return "cn/2";
-   if (algo.indexOf("cn/r")   > -1) return "cn/r";
-   return "cn";
+// algo and their perf that can be derived from thier main algo perf
+function bench_algo_deps(bench_algo, perf) {
+   switch (bench_algo) {
+     case "cn/r": return {
+       "cn/0":          perf,
+       "cn/1":          perf,
+       "cn/2":          perf,
+       "cn/r":          perf,
+       "cn/wow":        perf,
+       "cn/fast":       perf * 2,
+       "cn/half":       perf * 2,
+       "cn/xao":        perf,
+       "cn/rto":        perf,
+       "cn/rwz":        perf / 3 * 4,
+       "cn/zls":        perf / 3 * 4,
+       "cn/double":     perf / 2,
+     };
+     case "cn/gpu": return {
+       "cn/gpu":        perf,
+     };
+     case "cn-pico/trtl": return {
+       "cn-pico/trtl":  perf,
+     };
+     case "cn-lite/1": return {
+       "cn-lite/0":     perf,
+       "cn-lite/1":     perf,
+     };
+     case "cn-heavy/xhv": return {
+       "cn-heavy/0":    perf,
+       "cn-heavy/xhv":  perf,
+       "cn-heavy/tube": perf,
+     };
+     case "rx/wow": return {
+       "rx/wow":        perf,
+     };
+     case "rx/0": return {
+       "rx/0":          perf,
+       "rx/loki":       perf,
+     };
+     default: return {};
+   }
 }
 
 // *****************************************************************************
@@ -89,18 +112,13 @@ let c = {
   pools: [],
   algos: {},
   algo_perf: {
-    "cn/r":      0,
-    "cn/2":      0,
-    "cn":        0,
-    "cn/half":   0,
-    "cn/rwz":    0,
-    "cn/zls":    0,
-    "cn/double": 0,
-    "cn/gpu":    0,
-    "cn-pico":   0,
-    "cn-lite":   0,
-    "cn-heavy":  0,
-    "rx/wow":    0,
+    "cn/r":         0,
+    "cn/gpu":       0,
+    "cn-lite/1":    0,
+    "cn-heavy/xhv": 0,
+    "cn-pico/trtl": 0,
+    "rx/0":         0,
+    "rx/wow":       0,
   },
   algo_min_time: 0,
   user: null,
@@ -128,8 +146,8 @@ let next_miner_to_run   = null; // here we store miner command line that will be
 let curr_pool_num       = 0;
 let last_miner_hashrate = null;
 let is_want_miner_kill  = false; // true if we want to kill miner (otherwise it is restart if closed without a reason)
-let curr_perf_class     = null;
-let last_perf_class_change_time = null;
+let curr_algo     = null;
+let last_algo_change_time = null;
 
 let main_pool_check_timer   = null;
 let miner_proc              = null;
@@ -337,7 +355,7 @@ function start_miner_raw(exe, args, out_cb) {
    const cmd = exe + " " + args.join(" ");
    if (is_verbose_mode) log("Starting miner: " + cmd);
    last_miner_hashrate = null;
-   last_perf_class_change_time = null;
+   last_algo_change_time = null;
    is_want_miner_kill = false;
    let proc = child_process.spawn(exe, args, is_miner_stdin ? {stdio: ['inherit', 'pipe', 'pipe']} : {});
 
@@ -501,9 +519,8 @@ function pool_new_msg(is_new_job, json) {
       curr_pool_job1 = json;
     }
 
-    const next_perf_class = algo_perf_class(next_algo);
-    if (curr_perf_class != next_perf_class) last_perf_class_change_time = Date.now();
-    curr_perf_class = next_perf_class;
+    if (curr_algo != next_algo) last_algo_change_time = Date.now();
+    curr_algo = next_algo;
     const next_miner = c.algos[next_algo];
     if (!curr_miner || curr_miner != next_miner) {
       curr_miner_socket = null;
@@ -617,11 +634,11 @@ function check_miners(smart_miners, miners, cb) {
 
 function do_miner_perf_runs(cb) {
   let miner_perf_runs = [];
-  for (let algo_class in c.algo_perf) {
-    if (c.algo_perf[algo_class] || !(algo_perf_algo[algo_class] in c.algos)) continue;
+  for (let algo of bench_algos) {
+    if (c.algo_perf[algo] || !(algo in c.algos)) continue;
     miner_perf_runs.push(function(resolve) {
-      log("Checking miner performance for " + algo_class + " algo class");
-      const cmd = c.algos[algo_perf_algo[algo_class]];
+      log("Checking miner performance for " + algo + " algo");
+      const cmd = c.algos[algo];
       let miner_proc = null;
       let timeout = setTimeout(function () {
         err("Can't find performance data in '" + cmd + "' miner output");
@@ -633,7 +650,7 @@ function do_miner_perf_runs(cb) {
         let id = "id" in json ? json.id : 1;
         miner_socket.write(
           '{"id":' + id + ',"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
-          '","algo":"' + algo_perf_algo[algo_class] + '","height":0,"seed_hash":"0000000000000000000000000000000000000000000000000000000000000000","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
+          '","algo":"' + algo + '","height":0,"seed_hash":"0000000000000000000000000000000000000000000000000000000000000001","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
        );
       };
       miner_proc = start_miner(cmd, function(str) {
@@ -644,8 +661,12 @@ function do_miner_perf_runs(cb) {
           const m = str.match(hashrate_regex);
           if (m) {
             const hashrate = parseFloat(m[1]);
-            log("Setting performance for " + algo_class + " algo class to " + hashrate);
-            c.algo_perf[algo_class] = hashrate;
+            const algo_deps = bench_algo_deps(algo, hashrate);
+            for (let algo_dep in algo_deps) {
+              log("Setting performance for " + algo_dep + " algo to " + algo_deps[algo_dep]);
+              c.algo_perf[algo_dep] = algo_deps[algo_dep];
+            }
+            c.algo_perf[algo] = hashrate;
             miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
             tree_kill(miner_proc.pid);
             break;
@@ -676,7 +697,7 @@ function print_help() {
   console.log("\t--port=<number>:               \tdefines port that will be used for miner connections (3333 by default)");
   console.log("\t--user=<wallet> (-u):          \t<wallet> to use as pool user login (will be taken from the first miner otherwise)");
   console.log("\t--pass=<miner_id>:             \t<miner_id> to use as pool pass login (will be taken from the first miner otherwise)");
-  console.log("\t--perf_<algo_class>=<hashrate> \tSets hashrate for perf <algo_class> that is: " + Object.keys(c.algo_perf).join(", "));
+  console.log("\t--perf_<algo>=<hashrate>       \tSets hashrate for algo that is: " + bench_algos.join(", "));
   console.log("\t--algo_min_time=<seconds>      \tSets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)");
   console.log("\t--miner=<command_line> (-m):   \t<command_line> to start smart miner that can report algo itself");
   console.log("\t--<algo>=<command_line>:       \t<command_line> to start miner for <algo> that can not report it itself");
@@ -763,10 +784,10 @@ function parse_argv(cb) {
     } else if (m = val.match(/^(?:--perf_([^=]+))=([\d\.]+)$/)) {
       if (m[1] in c.algo_perf) {
         const hashrate = parseFloat(m[2]);
-        if (is_verbose_mode) log("Setting performance for " + m[1] + " algo class to " + hashrate);
+        if (is_verbose_mode) log("Setting performance for " + m[1] + " algo to " + hashrate);
         c.algo_perf[m[1]] = hashrate;
       } else {
-        err("Ignoring unknown algo class " + m[1] + ". Please use one of these: " + Object.keys(c.algo_perf).join(", "));
+        err("Ignoring unknown algo " + m[1] + ". Please use one of these: " + bench_algos.join(", "));
       }
     } else if (m = val.match(/^(?:--pass)=(.+)$/)) {
       if (is_verbose_mode) log("Setting pool pass to '" + m[1] + "'");
@@ -852,9 +873,9 @@ function main() {
     if (is_verbose_mode) log("Starting miner hashrate watchdog timer (with " + c.hashrate_watchdog + "% min hashrate threshold)");
     setInterval(function () {
       if (!curr_pool_socket || !curr_miner_socket || last_miner_hashrate === null) return;
-      // there was perf class change without miner restart so we need to wait for at least 15 minutes for hashrate to be correct
-      if (last_perf_class_change_time && Date.now() - last_perf_class_change_time < 15*60*1000) return;
-      const min_hashrate = c.algo_perf[curr_perf_class] * c.hashrate_watchdog / 100;
+      // there was perf change without miner restart so we need to wait for at least 15 minutes for hashrate to be correct
+      if (last_algo_change_time && Date.now() - last_algo_change_time < 15*60*1000) return;
+      const min_hashrate = c.algo_perf[curr_algo] * c.hashrate_watchdog / 100;
       if (last_miner_hashrate < min_hashrate) {
         err("Current miner hashrate " + last_miner_hashrate + " is below minimum " + min_hashrate + " hashrate threshold. Restarting it...");
         replace_miner(curr_miner);

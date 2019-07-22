@@ -11,24 +11,24 @@ Adding algo switching support to *any* stratum miner
 <config_file.json> is file name of config file to load before parsing options (mm.json by default)
 Config file and options should define at least one pool and miner:
 Options:
-        --pool=<pool> (-p):             <pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>
-        --host=<hostname>:              defines host that will be used for miner connections (localhost 127.0.0.1 by default)
-        --port=<number>:                defines port that will be used for miner connections (3333 by default)
-        --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
-        --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
-        --perf_<algo_class>=<hashrate>  Sets hashrate for perf <algo_class> that is: cn/r, cn/2, cn, cn/half, cn/rwz, cn/zls, cn/double, cn/gpu, cn-pico, cn-lite, cn-heavy, rx/wow
-        --algo_min_time=<seconds>       Sets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)
-        --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
-        --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
-        --watchdog=<seconds> (-w):      restart miner if is does not submit work for <seconds> (600 by default, 0 to disable)
-        --hashrate_watchdog=<percent>:  restart miner if is hashrate dropped below <percent> value of of its expected hashrate (0 by default to disable)
-        --miner_stdin:                  enables stdin (input) in miner
-        --quiet (-q):                   do not show miner output during configuration and also less messages
-        --verbose (-v):                 show more messages
-        --debug:                        show pool and miner messages
-        --log=<file_name>:              <file_name> of output log
-        --no-config-save:               Do not save config file
-        --help (-help,-h,-?):           Prints this help text
+	--pool=<pool> (-p):            	<pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>
+	--host=<hostname>:             	defines host that will be used for miner connections (localhost 127.0.0.1 by default)
+	--port=<number>:               	defines port that will be used for miner connections (3333 by default)
+	--user=<wallet> (-u):          	<wallet> to use as pool user login (will be taken from the first miner otherwise)
+	--pass=<miner_id>:             	<miner_id> to use as pool pass login (will be taken from the first miner otherwise)
+	--perf_<algo>=<hashrate>       	Sets hashrate for algo that is: cn/r, cn/gpu, cn-pico/trtl, cn-lite/1, cn-heavy/xhv, rx/wow, rx/0
+	--algo_min_time=<seconds>      	Sets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)
+	--miner=<command_line> (-m):   	<command_line> to start smart miner that can report algo itself
+	--<algo>=<command_line>:       	<command_line> to start miner for <algo> that can not report it itself
+	--watchdog=<seconds> (-w):     	restart miner if is does not submit work for <seconds> (600 by default, 0 to disable)
+	--hashrate_watchdog=<percent>: 	restart miner if is hashrate dropped below <percent> value of of its expected hashrate (0 by default to disable)
+	--miner_stdin:                 	enables stdin (input) in miner
+	--quiet (-q):                  	do not show miner output during configuration and also less messages
+	--verbose (-v):                	show more messages
+	--debug:                       	show pool and miner messages
+	--log=<file_name>:             	<file_name> of output log
+	--no-config-save:              	Do not save config file
+	--help (-help,-h,-?):          	Prints this help text
 ```
 
 Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-algorithm-names-and-variants for list of possible algo names.
@@ -37,46 +37,60 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
 
 ```
 {
+ "miner_host": "127.0.0.1",
  "miner_port": 3333,
  "pools": [
-   "gulf.moneroocean.stream:10001"
+  "gulf.moneroocean.stream:10001"
  ],
  "algos": {
-   "cn/r": "./xmrig --config=config.json",
-   "cn/0": "./xmrig --config=config.json",
-   "cn/1": "./xmrig --config=config.json",
-   "cn/2": "./xmrig --config=config.json",
-   "cn/xtl": "./xmrig --config=config.json",
-   "cn/msr": "./xmrig --config=config.json",
-   "cn/xao": "./xmrig --config=config.json",
-   "cn/rto": "./xmrig --config=config.json",
-   "cn/half": "./xmrig --config=config.json",
-   "cn/wow": "./xmrig --config=config.json",
-   "cn/rwz": "./xmrig --config=config.json",
-   "cn/zls": "./xmrig --config=config.json",
-   "cn/double": "./xmrig --config=config.json",
-   "cn/gpu": "./xmrig --config=config-gpu.json",
-   "cn-lite/1": "./xmrig --config=config-lite.json",
-   "cn-lite/0": "./xmrig --config=config-lite.json",
-   "cn-heavy/0": "./xmrig --config=config-heavy.json",
-   "cn-heavy/xhv": "./xmrig --config=config-heavy.json",
-   "cn-heavy/tube": "./xmrig --config=config-heavy.json",
-   "cn-pico/trtl": "./xmrig --config=config-pico.json",
-   "rx/wow": "./xmrig --config=config-randomwow.json",
+  "cn/1": "./xmrig --config=config.json",
+  "cn/2": "./xmrig --config=config.json",
+  "cn/r": "./xmrig --config=config.json",
+  "cn/wow": "./xmrig --config=config.json",
+  "cn/fast": "./xmrig --config=config.json",
+  "cn/half": "./xmrig --config=config.json",
+  "cn/xao": "./xmrig --config=config.json",
+  "cn/rto": "./xmrig --config=config.json",
+  "cn/rwz": "./xmrig --config=config.json",
+  "cn/zls": "./xmrig --config=config.json",
+  "cn/double": "./xmrig --config=config.json",
+  "cn/gpu": "./xmrig --config=config.json",
+  "cn-lite/1": "./xmrig --config=config.json",
+  "cn-heavy/0": "./xmrig --config=config.json",
+  "cn-heavy/tube": "./xmrig --config=config.json",
+  "cn-heavy/xhv": "./xmrig --config=config.json",
+  "cn-pico": "./xmrig --config=config.json",
+  "rx/0": "./xmrig --config=config.json",
+  "rx/wow": "./xmrig --config=config.json",
+  "rx/loki": "./xmrig --config=config.json"
  },
  "algo_perf": {
-   "cn/r": 34,
-   "cn/2": 37.4,
-   "cn": 36.3,
-   "cn/half": 73.5,
-   "cn/gpu": 6,
-   "cn/rwz": 49.6,
-   "cn/zls": 49.6,
-   "cn/double": 18.7,
-   "cn-pico": 394.7,
-   "cn-lite": 114.9,
-   "cn-heavy": 18.2
+  "cn/r": 90.7,
+  "cn/0": 90.7,
+  "cn/1": 90.7,
+  "cn/2": 90.7,
+  "cn/xtl": 0,
+  "cn/msr": 0,
+  "cn/xao": 90.7,
+  "cn/rto": 90.7,
+  "cn/half": 181.4,
+  "cn/wow": 90.7,
+  "cn/rwz": 120.93333333333334,
+  "cn/zls": 120.93333333333334,
+  "cn/double": 45.35,
+  "cn/gpu": 13.4,
+  "cn-lite/1": 288,
+  "cn-lite/0": 288,
+  "cn-heavy/0": 70.6,
+  "cn-heavy/xhv": 70.6,
+  "cn-heavy/tube": 70.6,
+  "cn-pico/trtl": 0,
+  "rx/wow": 821.3,
+  "rx/loki": 731.6,
+  "cn/fast": 181.4,
+  "rx/0": 731.6
  },
+ "algo_min_time": 0,
  "user": "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1",
  "pass": "x",
  "log_file": null,
@@ -91,13 +105,13 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
 
 * For best results separate xmr-stak CPU and GPU miners (by using --noCPU, --noAMD, --noNVIDIA options).
 
-* Prepare your miner config files that give the best performance for your hardware on cryptonight, cryptonight-lite, cryptonight-heavy and cryptonight-pico algorithm classes.
+* Prepare your miner config files that give the best performance for your hardware on cryptonight, cryptonight-lite, cryptonight-heavy and cryptonight-pico algorithm classes (not needed for xmrig v2.99+).
 
 * If you have several miners on one host use mm.js --port option to assign them to different ports.
 
 * Additional mm.js pools will be used as backup pools.
 
-* To rerun benchmark for specific algorithm class use --perf_<algo_class>=0 option.
+* To rerun benchmark for specific algorithm class use --perf_<algo>=0 option.
 
 ## Usage examples on Windows
 
@@ -110,25 +124,17 @@ Place mm.exe or mm.js (with nodejs installed) into unpacked miner directory eith
 
 ### Usage example with xmrig-amd on Windows
 
-* Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig-amd/releases/download/v2.14.1/xmrig-amd-2.14.1-msvc-win64.zip).
+* Download and unpack the lastest xmrig-amd (https://github.com/xmrig/xmrig/releases/download/v2.99.0-beta/xmrig-2.99.0-beta-msvc-win64.zip).
 
 * Modify config.json file in xmrig-amd directory this way and adjust it for the best threads performance (out of scope of this guide):
 
 	* Set "url" to "localhost:3333"
 	* Set "user" to "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1" (put your Monero address)
 
-* Copy config.json to config-lite.json, put "algo" to "cryptonight-lite/1" in config-lite.json and adjust it for the best threads performance (out of scope of this guide).
-
-* Copy config.json to config-heavy.json, put "algo" to "cryptonight-heavy/0" in config-heavy.json and adjust it for the best threads performance (out of scope of this guide).
-
-* Copy config.json to config-pico.json, put "algo" to "cryptonight-pico/trtl" in config-pico.json and adjust it for the best threads performance (out of scope of this guide).
-
-* Copy config.json to config-gpu.json, put "algo" to "cryptonight/gpu" in config-gpu.json and adjust it for the best threads performance (out of scope of this guide).
-
 * Run Meta Miner (or use "node mm.js" instead of mm.exe):
 
 ```shell
-mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json" -m="xmrig-amd.exe --config=config-heavy.json" -m="xmrig-amd.exe --config=config-lite.json" -m="xmrig-amd.exe --config=config-pico.json" -m="xmrig-amd.exe --config=config-gpu.json" -m="xmrig-amd.exe --config=config.json"
+mm.exe -p=gulf.moneroocean.stream:10001 -m="xmrig-amd.exe --config=config.json"
 ```
 
 ### Usage example with xmr-stak (AMD only) on Windows
@@ -178,9 +184,9 @@ chmod +x mm.js
 * Get xmrig:
 
 ```shell
-wget https://github.com/xmrig/xmrig-amd/releases/download/v2.14.1/xmrig-amd-2.14.1-xenial-x64.tar.gz
-tar xf xmrig-2.14.1-xenial-amd64.tar.gz
-cd xmrig-2.14.1/
+wget https://github.com/xmrig/xmrig/releases/download/v2.99.0-beta/xmrig-2.99.0-beta-xenial-x64.tar.gz
+tar xf xmrig-2.99.0-beta-xenial-x64.tar.gz
+cd xmrig-2.99.0-beta
 ```
 
 * Prepare configs for different algorithms (put your Monero address):
@@ -188,22 +194,12 @@ cd xmrig-2.14.1/
 ```shell
 sed -i 's/"url": *"[^"]*",/"url": "localhost:3333",/' config.json
 sed -i 's/"user": *"[^"]*",/"user": "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1",/' config.json
-cp config.json config-heavy.json
-cp config.json config-lite.json
-cp config.json config-pico.json
-cp config.json config-gpu.json
-cp config.json config-randomwow.json
-sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-heavy\/0",/' config-heavy.json
-sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-lite\/1",/' config-lite.json
-sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight-pico\/trtl",/' config-pico.json
-sed -i 's/"algo": *"[^"]*",/"algo": "cryptonight\/gpu",/' config-gpu.json
-sed -i 's/"algo": *"[^"]*",/"algo": "randomx\/wow",/' config-randomwow.json
 ```
 
 * Run Meta Miner:
 
 ```shell
-./mm.js -p=gulf.moneroocean.stream:10001 -m="./xmrig --config=config.json" -m="./xmrig --config=config-heavy.json" -m="./xmrig --config=config-lite.json" -m="./xmrig --config=config-pico.json" -m="./xmrig --config=config-gpu.json"
+./mm.js -p=gulf.moneroocean.stream:10001 -m="./xmrig --config=config.json"
 ```
 
 ### Usage example with xmr-stak (CPU only) on Linux
