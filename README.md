@@ -33,7 +33,7 @@ Options:
 
 Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-algorithm-names-and-variants for list of possible algo names.
 
-## Sample mm.json (to use with xmrig v2.10.0+ located in the same directory)
+## Sample mm.json (to use with xmrig v2.99.0+ located in the same directory)
 
 ```
 {
