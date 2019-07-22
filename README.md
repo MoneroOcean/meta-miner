@@ -111,7 +111,7 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
 
 * Additional mm.js pools will be used as backup pools.
 
-* To rerun benchmark for specific algorithm class use --perf_<algo>=0 option.
+* To rerun benchmark for specific algorithm class use --perf_*algo*=0 option.
 
 ## Usage examples on Windows
 
