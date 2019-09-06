@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v2.1";
+const VERSION      = "v2.2";
 const DEFAULT_ALGO = "cn/r"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -143,15 +143,15 @@ let is_miner_stdin    = false;
 // *** WORKING STATE                                                         ***
 // *****************************************************************************
 
-let curr_miner_socket   = null;
-let curr_pool_socket    = null;
-let curr_pool_job1      = null;
-let curr_miner          = null;
-let next_miner_to_run   = null; // here we store miner command line that will be run after current miner is stopped or null if no miner is being stopped now
-let curr_pool_num       = 0;
-let last_miner_hashrate = null;
-let is_want_miner_kill  = false; // true if we want to kill miner (otherwise it is restart if closed without a reason)
-let curr_algo     = null;
+let curr_miner_socket     = null;
+let curr_pool_socket      = null;
+let curr_pool_job1        = null;
+let curr_miner            = null;
+let next_miner_to_run     = null; // here we store miner command line that will be run after current miner is stopped or null if no miner is being stopped now
+let curr_pool_num         = 0;
+let last_miner_hashrate   = null;
+let is_want_miner_kill    = false; // true if we want to kill miner (otherwise it is restart if closed without a reason)
+let curr_algo             = null;
 let last_algo_change_time = null;
 
 let main_pool_check_timer   = null;
@@ -187,11 +187,6 @@ function tree_kill(pid, signal, callback) {
             killAll(tree, signal, callback);
         });
         break;
-    // case 'sunos':
-    //     buildProcessTreeSunOS(pid, tree, pidsToProcess, function () {
-    //         killAll(tree, signal, callback);
-    //     });
-    //     break;
     default: // Linux
         buildProcessTree(pid, tree, pidsToProcess, function (parentPid) {
           return child_process.spawn('ps', ['-o', 'pid', '--no-headers', '--ppid', parentPid]);
@@ -876,6 +871,7 @@ function main() {
       const miner_idle_time = (Date.now() - miner_last_submit_time) / 1000;
       if (miner_idle_time > c.watchdog) {
         err("No results from miner for more than " + c.watchdog + " seconds. Restarting it...");
+        miner_last_submit_time = Date.now();
         replace_miner(curr_miner);
       }
     }, 60*1000);
