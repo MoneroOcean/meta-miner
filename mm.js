@@ -709,7 +709,7 @@ function do_miner_perf_runs(cb) {
       };
       miner_get_first_job_cb = function(json, miner_socket) {
         if (curr_miner_protocol === "grin") miner_socket.write(JSON.stringify({
-          jsonrpc:  "2.0"
+          jsonrpc:  "2.0",
           id:       "Stratum",
           error:    null,
           method:   "getjobtemplate",
@@ -726,7 +726,7 @@ function do_miner_perf_runs(cb) {
             status:     "OK"
           }
         }) + "\n"); else miner_socket.write(JSON.stringify({
-          jsonrpc:  "2.0"
+          jsonrpc:  "2.0",
           id:       "id" in json ? json.id : 1,
           error:    null,
           method:   "login",
