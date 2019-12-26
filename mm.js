@@ -732,7 +732,7 @@ function do_miner_perf_runs(cb) {
           method:   "login",
           result: {
             id:     "benchmark",
-            status: "OK"
+            status: "OK",
             job: {
               target:    "01000000",
               blob:      "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03",
