@@ -34,32 +34,38 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v2.2";
-const DEFAULT_ALGO = "cn/r"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
+const VERSION      = "v3.0";
+const DEFAULT_ALGO = "rx/0"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
 // [multiplier, nr benchmark prints, regex]
 // the multiplier is for supporting hashrate prints in different units
 // the nr benchmark prints is to make sure hashrate has stabilized before snapping the benchmark value
 const hashrate_regexes = [
-  [1,   1, /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],       // for old xmrig
-  [1,   1, /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for new xmrig
-  [1,   1, /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/], // xmr-stak
-  [1,   1, /Total Speed: ([\d\.]+) H\/s,/],                              // claymore
-  [1,   1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
-  [1e3, 3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
-  [1,   3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
+  [1,    1, /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],       // for old xmrig
+  [1,    1, /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for new xmrig
+  [1,    1, /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/], // xmr-stak
+  [1,    1, /Total Speed: ([\d\.]+) H\/s,/],                              // claymore
+  [1,    1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
+  [1e3,  3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
+  [1,    3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
+  [1/32, 1, /Mining at ([\d\.]+) gps/],                                   // SwapReferenceMiner/MoneroVMiner (use mode=rolling command line option)
 ];
 
 // main algos we bench for
 const bench_algos = [
+  "rx/0",
   "cn/r",
   "cn/gpu",
   "cn-pico/trtl",
   "cn-lite/1",
   "cn-heavy/xhv",
   "rx/wow",
-  "rx/0",
+  "defyx",
+  "argon2/chukwa",
+  "k12",
+  "c29s",
+  "c29v",
 ];
 
 // algo and their perf that can be derived from thier main algo perf
@@ -100,6 +106,22 @@ function bench_algo_deps(bench_algo, perf) {
      case "rx/0": return {
        "rx/0":          perf,
        "rx/loki":       perf,
+       "rx/v":          perf,
+     };
+     case "defyx": return {
+       "defyx":         perf,
+     };
+     case "argon2/chukwa": return {
+       "argon2/chukwa": perf,
+     };
+     case "k12": return {
+       "k12":           perf,
+     };
+     case "c29s": return {
+       "c29v":          perf,
+     };
+     case "c29v": return {
+       "c29v":          perf * 2, // c29v has multiplier 16, not 32 like c29s
      };
      default: return {};
    }
@@ -117,13 +139,18 @@ let c = {
   pools: [],
   algos: {},
   algo_perf: {
-    "cn/r":         0,
-    "cn/gpu":       0,
-    "cn-lite/1":    0,
-    "cn-heavy/xhv": 0,
-    "cn-pico/trtl": 0,
-    "rx/0":         0,
-    "rx/wow":       0,
+    "rx/0":          0,
+    "cn/r":          0,
+    "cn/gpu":        0,
+    "cn-lite/1":     0,
+    "cn-heavy/xhv":  0,
+    "cn-pico/trtl":  0,
+    "rx/wow":        0,
+    "defyx":         0,
+    "argon2/chukwa": 0,
+    "k12":           0,
+    "c29s":          0,
+    "c29v":          0,
   },
   algo_min_time: 0,
   user: null,
@@ -144,8 +171,9 @@ let is_miner_stdin    = false;
 // *****************************************************************************
 
 let curr_miner_socket     = null;
+let curr_miner_protocol   = "default"; // curr_miner_socket communication protocol that can be "default" or "grin"
 let curr_pool_socket      = null;
-let curr_pool_job1        = null;
+let curr_pool_last_job    = null;
 let curr_miner            = null;
 let next_miner_to_run     = null; // here we store miner command line that will be run after current miner is stopped or null if no miner is being stopped now
 let curr_pool_num         = 0;
@@ -154,10 +182,11 @@ let is_want_miner_kill    = false; // true if we want to kill miner (otherwise i
 let curr_algo             = null;
 let last_algo_change_time = null;
 
-let main_pool_check_timer   = null;
-let miner_proc              = null;
-let miner_login_cb          = null;
-let miner_last_submit_time  = null;
+let main_pool_check_timer  = null;
+let miner_proc             = null;
+let miner_login_cb         = null;
+let miner_get_first_job_cb = null;
+let miner_last_submit_time = null;
 
 // *****************************************************************************
 // *** FUNCTIONS                                                             ***
@@ -295,6 +324,15 @@ function print_messages(str) {
 
 // *** Miner socket processing
 
+function set_curr_miner(socket, protocol) {
+   curr_miner_socket   = socket;
+   curr_miner_protocol = protocol ? protocol : "default";
+}
+
+function grin_json_reply(method, result) {
+  return JSON.stringify({"jsonrpc": "2.0", "method": method, "result": result}) + "\n";
+}
+
 let miner_server = net.createServer(function (miner_socket) {
   if (curr_miner_socket) {
     err("Miner server on " + c.miner_host + ":" + c.miner_port + " port is already connected (please make sure you do not have other miner running)");
@@ -326,7 +364,10 @@ let miner_server = net.createServer(function (miner_socket) {
           replace_miner(curr_miner);
         } else {
           miner_login_cb(json, miner_socket);
+          if (curr_miner_protocol !== "grin") miner_get_first_job_cb(json, miner_socket);
         }
+      } else if (is_method && json.method === "getjobtemplate") { // only for grin
+          miner_get_first_job_cb(json, miner_socket);
       } else if (curr_pool_socket) {
         curr_pool_socket.write(JSON.stringify(json) + "\n");
         if (is_method && json.method === "submit") miner_last_submit_time = Date.now();
@@ -339,13 +380,13 @@ let miner_server = net.createServer(function (miner_socket) {
   miner_socket.on('end', function() {
     if (is_verbose_mode) log("Miner socket was closed");
     if (curr_pool_socket && curr_miner_socket) err("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was broken due to closed miner socket");
-    curr_miner_socket = null;
+    set_curr_miner(null);
   });
   miner_socket.on('error', function() {
     err("Miner socket error");
     if (curr_pool_socket && curr_miner_socket) err("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was broken due to miner socket error");
     miner_socket.destroy();
-    curr_miner_socket = null;
+    set_curr_miner(null);
   });
 });
 
@@ -426,6 +467,7 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
         continue;
       }
       if (is_debug) log("Pool message: " + JSON.stringify(json));
+      // different for first and subsequent XMR pool jobs
       const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
                          ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
       if (is_new_job) {
@@ -502,35 +544,48 @@ function replace_miner(next_miner) {
 function pool_new_msg(is_new_job, json) {
   if (is_new_job) {
     let next_algo = DEFAULT_ALGO;
+
     if ("params" in json && "algo" in json.params) next_algo = json.params.algo;
     else if ("result" in json && "job" in json.result && "algo" in json.result.job) next_algo = json.result.job.algo;
+
     if (!(next_algo in c.algos)) {
       err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
       return;
     }
 
     if ("params" in json) {
-      if (curr_pool_job1) {
-        curr_pool_job1.result.job = json.params;
+      if (curr_pool_last_job) {
+        curr_pool_last_job.result.job = json.params;
       } else {
         err("[INTERNAL ERROR] Can not update pool (" + c.pools[curr_pool_num] + ") job since its first job is missing");
       }
     } else {
-      curr_pool_job1 = json;
+      curr_pool_last_job = json;
     }
 
     if (curr_algo != next_algo) last_algo_change_time = Date.now();
     curr_algo = next_algo;
     const next_miner = c.algos[next_algo];
     if (!curr_miner || curr_miner != next_miner) {
-      curr_miner_socket = null;
+      set_curr_miner(null);
       if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
       curr_miner = next_miner;
       replace_miner(next_miner);
     }
   }
 
-  if (curr_miner_socket) curr_miner_socket.write(JSON.stringify(json) + "\n"); 
+  if (curr_miner_socket) {
+    if (curr_miner_protocol === "grin") {
+      if (is_new_job) curr_miner_socket.write(grin_json_reply("getjobtemplate", curr_pool_last_job.result.job));
+      else {
+        let grin_json = json;
+        if ("result" in grin_json && "status" in grin_json.result && grin_json.result.status === "OK") grin_json.result = "ok";
+        curr_miner_socket.write(JSON.stringify(grin_json) + "\n");
+      }
+    } else {
+      curr_miner_socket.write(JSON.stringify(json) + "\n"); 
+    }
+  }
 }
 
 function pool_err(pool_num) {
@@ -542,7 +597,7 @@ function pool_err(pool_num) {
   if (curr_pool_num != pool_num) err("[INTERNAL ERROR] Unexpected pool_num in pool_err");
   if (curr_pool_socket && curr_miner_socket) err("Pool (" + c.pools[pool_num] + ") <-> miner link was broken due to pool socket error");
   curr_pool_socket = null;
-  curr_pool_job1   = null;
+  curr_pool_last_job   = null;
   if (++ curr_pool_num >= c.pools.length) {
     if (is_verbose_mode) log("Waiting 60 seconds before trying to connect to the same pools once again");
     setTimeout(connect_pool, 60*1000, curr_pool_num = 0, pool_ok, pool_new_msg, pool_err);
@@ -585,6 +640,7 @@ function check_miners(smart_miners, miners, cb) {
             }
             c.algos[algo] = cmd;
             c.algos[algo.replace('cryptonight', 'cn')] = cmd;
+            c.algos[algo.replace('randomx', 'rx')] = cmd;
           });
         } else {
           err("Miner '" + cmd + "' does not report any algo and will be ignored");
@@ -592,6 +648,7 @@ function check_miners(smart_miners, miners, cb) {
         miner_proc.on('close', (code) => { resolve(); });
         tree_kill(miner_proc.pid);
       };
+      miner_get_first_job_cb = function() {};
       miner_proc = start_miner(cmd, print_messages);
     });
   });
@@ -614,9 +671,11 @@ function check_miners(smart_miners, miners, cb) {
         }
         c.algos[algo] = cmd;
         c.algos[algo.replace('cryptonight', 'cn')] = cmd;
+        c.algos[algo.replace('randomx', 'rx')] = cmd;
         miner_proc.on('close', (code) => { resolve(); });
         tree_kill(miner_proc.pid);
       };
+      miner_get_first_job_cb = function() {};
       miner_proc = start_miner(cmd, print_messages);
     });
   }
@@ -646,12 +705,45 @@ function do_miner_perf_runs(cb) {
         tree_kill(miner_proc.pid);
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
-        const test_blob_str = "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03";
-        let id = "id" in json ? json.id : 1;
-        miner_socket.write(
-          '{"id":' + id + ',"jsonrpc":"2.0","error":null,"result":{"id":"benchmark","job":{"blob":"' + test_blob_str +
-          '","algo":"' + algo + '","height":0,"seed_hash":"0000000000000000000000000000000000000000000000000000000000000001","job_id":"benchmark1","target":"01000000","id":"benchmark"},"status":"OK"}}\n'
-       );
+        curr_miner_protocol = json.id === "Stratum" ? "grin" : "default";
+      };
+      miner_get_first_job_cb = function(json, miner_socket) {
+        if (curr_miner_protocol === "grin") miner_socket.write(JSON.stringify({
+          jsonrpc:  "2.0"
+          id:       "Stratum",
+          error:    null,
+          method:   "getjobtemplate",
+          result: {
+            difficulty: 99999999,
+            pre_pow:    "0c0ccbc9035e0000000026c1674f64401b00e6c50b681f21bb5d5bb07be6d4a9d12a8cb2b493c9c039fee90877199a9dc04dccd734cf9b4b30eae84d06b94da19614536f3a87b0fe65f201",
+            algo:       "cuckaroo",
+            edgebits:   29,
+            proofsize:  32,
+            noncebytes: 4,
+            height:     0,
+            job_id:     "100000000000000",
+            id:         "100000000000000",
+            status:     "OK"
+          }
+        }) + "\n"); else miner_socket.write(JSON.stringify({
+          jsonrpc:  "2.0"
+          id:       "id" in json ? json.id : 1,
+          error:    null,
+          method:   "login",
+          result: {
+            id:     "benchmark",
+            status: "OK"
+            job: {
+              target:    "01000000",
+              blob:      "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03",
+              seed_hash: "0000000000000000000000000000000000000000000000000000000000000001",
+              algo:      algo,
+              height:    0,
+              job_id:    "benchmark1",
+              id:        "benchmark"
+            }
+          }
+        }) + "\n");
       };
       let nr_prints_needed = -1;
       let nr_prints_found = 0;
@@ -854,11 +946,20 @@ function main() {
 
   miner_login_cb = function(json, miner_socket) {
     if (curr_pool_socket && !curr_miner_socket) log("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was established due to new miner connection");
-    curr_miner_socket = miner_socket;
-    if (curr_pool_job1) {
-      let curr_pool_job1_id = curr_pool_job1;
-      if ("id" in json) curr_pool_job1_id.id = json.id;
-      miner_socket.write(JSON.stringify(curr_pool_job1_id) + "\n");
+    set_curr_miner(miner_socket, json.id === "Stratum" ? "grin" : "default");
+    if (curr_miner_protocol === "grin") {
+      miner_socket.write(grin_json_reply("login", "ok"));
+    }
+  };
+  miner_get_first_job_cb = function(json, miner_socket) {
+    if (curr_pool_last_job) {
+      if (curr_miner_protocol === "grin") {
+        miner_socket.write(grin_json_reply("getjobtemplate", curr_pool_last_job.result.job));
+      } else {
+        let curr_pool_last_job_id = curr_pool_last_job;
+        if ("id" in json) curr_pool_last_job_id.id = json.id;
+        miner_socket.write(JSON.stringify(curr_pool_last_job_id) + "\n");
+      }
     } else {
       err("No pool (" + c.pools[curr_pool_num] + ") job to send to the miner!");
     }
