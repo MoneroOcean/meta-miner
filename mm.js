@@ -49,7 +49,7 @@ const hashrate_regexes = [
   [1,    1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
   [1e3,  3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
   [1,    3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
-  [1/32, 1, /Mining at ([\d\.]+) gps/],                                   // SwapReferenceMiner/MoneroVMiner (use mode=rolling command line option)
+  [1/32, 1, /mining at ([\d\.]+) gps/],                                   // SwapReferenceMiner/MoneroVMiner (use mode=rolling command line option)
 ];
 
 // main algos we bench for
@@ -117,7 +117,7 @@ function bench_algo_deps(bench_algo, perf) {
        "k12":           perf,
      };
      case "c29s": return {
-       "c29v":          perf,
+       "c29s":          perf,
      };
      case "c29v": return {
        "c29v":          perf * 2, // c29v has multiplier 16, not 32 like c29s
@@ -546,11 +546,6 @@ function pool_new_msg(is_new_job, json) {
     if ("params" in json && "algo" in json.params) next_algo = json.params.algo;
     else if ("result" in json && "job" in json.result && "algo" in json.result.job) next_algo = json.result.job.algo;
 
-    if (!(next_algo in c.algos)) {
-      err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
-      return;
-    }
-
     if ("params" in json) {
       if (curr_pool_last_job) {
         curr_pool_last_job.result.job = json.params;
@@ -559,6 +554,11 @@ function pool_new_msg(is_new_job, json) {
       }
     } else {
       curr_pool_last_job = json;
+    }
+
+    if (!(next_algo in c.algos)) {
+      err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
+      return;
     }
 
     if (curr_algo != next_algo) last_algo_change_time = Date.now();
@@ -704,6 +704,7 @@ function do_miner_perf_runs(cb) {
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
         curr_miner_protocol = json.id === "Stratum" ? "grin" : "default";
+        if (curr_miner_protocol === "grin") miner_socket.write(grin_json_reply("login", "ok"));
       };
       miner_get_first_job_cb = function(json, miner_socket) {
         if (curr_miner_protocol === "grin") miner_socket.write(JSON.stringify({
@@ -944,9 +945,7 @@ function main() {
   miner_login_cb = function(json, miner_socket) {
     if (curr_pool_socket && !curr_miner_socket) log("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was established due to new miner connection");
     set_curr_miner(miner_socket, json.id === "Stratum" ? "grin" : "default");
-    if (curr_miner_protocol === "grin") {
-      miner_socket.write(grin_json_reply("login", "ok"));
-    }
+    if (curr_miner_protocol === "grin") miner_socket.write(grin_json_reply("login", "ok"));
   };
   miner_get_first_job_cb = function(json, miner_socket) {
     if (curr_pool_last_job) {

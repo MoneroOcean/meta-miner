@@ -119,6 +119,7 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
 * To rerun benchmark for specific algorithm class use --perf_*algo*=0 option.
 
 The configuration guide below is for stock xmrig. For xmr-stak/rx check [configuration guide for xmr-stak](xmr-stak.md).
+For c29 algo check [configuration guide for cuckaroo29](c29.md).
 
 ## Usage examples on Windows
 

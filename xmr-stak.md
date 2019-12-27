@@ -42,7 +42,7 @@ cd xmr-stak-rx-linux-1.0.3-cpu
 * Configure xmr-stak-rx this way (put your Monero wallet address):
 
 ```shell
-$ ./xmr-stak-rx
+./xmr-stak-rx
 ```
 ```
 Use simple setup method? (Y/n)
