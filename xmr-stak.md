@@ -43,8 +43,11 @@ cd xmr-stak-rx-linux-1.0.3-cpu
 
 ```shell
 $ ./xmr-stak-rx
+```
+```
 Use simple setup method? (Y/n)
 Y
+
 Configuration stored in file 'config.txt'
 Please enter:
 - Please enter the currency that you want to mine:
@@ -57,11 +60,13 @@ Please enter:
         - randomx_wow
         - wownero
 randomx
+
 - Pool address: e.g. pool.example.com:3333
 localhost:3333
 - Username (wallet address or pool login):
 44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1
 - Password (mostly empty or x):
+
 - Does this pool port support TLS/SSL? Use no if unknown. (y/N)
 N
 ```
