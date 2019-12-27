@@ -55,13 +55,12 @@ const hashrate_regexes = [
 // main algos we bench for
 const bench_algos = [
   "rx/0",
-  "cn/r",
-  "cn/gpu",
-  "cn-pico/trtl",
-  "cn-lite/1",
-  "cn-heavy/xhv",
   "rx/wow",
   "defyx",
+  "cn/r",
+  "cn-pico/trtl",
+  "cn-heavy/xhv",
+  "cn/gpu",
   "argon2/chukwa",
   "k12",
   "c29s",
@@ -142,7 +141,6 @@ let c = {
     "rx/0":          0,
     "cn/r":          0,
     "cn/gpu":        0,
-    "cn-lite/1":     0,
     "cn-heavy/xhv":  0,
     "cn-pico/trtl":  0,
     "rx/wow":        0,
@@ -729,7 +727,6 @@ function do_miner_perf_runs(cb) {
           jsonrpc:  "2.0",
           id:       "id" in json ? json.id : 1,
           error:    null,
-          method:   "login",
           result: {
             id:     "benchmark",
             status: "OK",
