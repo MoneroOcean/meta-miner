@@ -49,7 +49,8 @@ const hashrate_regexes = [
   [1,    1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
   [1e3,  3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
   [1,    3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
-  [1/32, 1, /mining at ([\d\.]+) gps/],                                   // SwapReferenceMiner/MoneroVMiner (use mode=rolling command line option)
+  [1/32, 1, /mining at ([\d\.]+) gps/],                                   // SwapReferenceMiner (use mode=rolling command line option)
+  [1/16, 2, /Total : ([\d\.]+) gps/],                                     // MoneroVMiner
 ];
 
 // main algos we bench for
@@ -120,7 +121,7 @@ function bench_algo_deps(bench_algo, perf) {
        "c29s":          perf,
      };
      case "c29v": return {
-       "c29v":          perf * 2, // c29v has multiplier 16, not 32 like c29s
+       "c29v":          perf,
      };
      default: return {};
    }

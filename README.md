@@ -65,7 +65,9 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "rx/sfx": "./xmrig --config=config.json",
   "rx/v": "./xmrig --config=config.json",
   "argon2/chukwa": "./xmrig --config=config.json",
-  "argon2/wrkz": "./xmrig --config=config.json"
+  "argon2/wrkz": "./xmrig --config=config.json",
+  "c29s": "./SwapReferenceMiner/SwapReferenceMinerCLI mode=rolling",
+  "c29v": "./MoneroVMiner/bin/MoneroVMiner"
  },
  "algo_perf": {
   "rx/0": 243.6,
@@ -93,7 +95,9 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "cn/zls": 66.39999999999999,
   "cn/double": 24.9,
   "cn-heavy/0": 30.5,
-  "cn-heavy/tube": 30.5
+  "cn-heavy/tube": 30.5,
+  "c29s": 0.0953125,
+  "c29v": 0.25125
  },
  "algo_min_time": 0,
  "user": "44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1",
