@@ -44,6 +44,7 @@ const AGENT        = "Meta Miner " + VERSION;
 const hashrate_regexes = [
   [1,    1, /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],       // for old xmrig
   [1,    1, /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for new xmrig
+  [1,    1, /\s+miner\s+speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for xmrig v6+
   [1,    1, /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/], // xmr-stak
   [1,    1, /Total Speed: ([\d\.]+) H\/s,/],                              // claymore
   [1,    1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
