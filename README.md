@@ -66,6 +66,7 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "rx/v": "./xmrig --config=config.json",
   "argon2/chukwa": "./xmrig --config=config.json",
   "argon2/wrkz": "./xmrig --config=config.json",
+  "c29b": "./tube4referenceMiner/tube4referenceMinerCLI mode=rolling",
   "c29s": "./SwapReferenceMiner/SwapReferenceMinerCLI mode=rolling",
   "c29v": "./MoneroVMiner/bin/MoneroVMiner"
  },
@@ -96,6 +97,7 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "cn/double": 24.9,
   "cn-heavy/0": 30.5,
   "cn-heavy/tube": 30.5,
+  "c29b": 0.07,
   "c29s": 0.0953125,
   "c29v": 0.25125
  },

@@ -50,8 +50,9 @@ const hashrate_regexes = [
   [1,    1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
   [1e3,  3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
   [1,    3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
-  [1/32, 1, /mining at\s+([\d\.]+) gps/],                                   // SwapReferenceMiner (use mode=rolling command line option)
-  [1/16, 2, /Total\s+:\s+([\d\.]+) gps/],                                     // MoneroVMiner
+  [1/40, 1, /Mining at\s+([\d\.]+) gps/],                                 // tube4referenceMiner (use mode=rolling command line option)
+  [1/32, 1, /mining at\s+([\d\.]+) gps/],                                 // SwapReferenceMiner (use mode=rolling command line option)
+  [1/16, 2, /Total\s+:\s+([\d\.]+) gps/],                                 // MoneroVMiner
 ];
 
 // main algos we bench for
@@ -67,6 +68,7 @@ const bench_algos = [
   "k12",
   "c29s",
   "c29v",
+  "c29b",
 ];
 
 // algo and their perf that can be derived from thier main algo perf
@@ -124,6 +126,9 @@ function bench_algo_deps(bench_algo, perf) {
      case "c29v": return {
        "c29v":          perf,
      };
+     case "c29b": return {
+       "c29b":          perf,
+     };
      default: return {};
    }
 }
@@ -151,6 +156,7 @@ let c = {
     "k12":           0,
     "c29s":          0,
     "c29v":          0,
+    "c29b":          0,
   },
   algo_min_time: 0,
   user: null,
