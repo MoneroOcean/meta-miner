@@ -53,6 +53,7 @@ const hashrate_regexes = [
   [1,       1, /Mining at\s+([\d\.]+) gps/],                                 // tube4referenceMiner (use mode=rolling command line option)
   [1,       1, /mining at\s+([\d\.]+) gps/],                                 // SwapReferenceMiner (use mode=rolling command line option)
   [1,       2, /Total\s+:\s+([\d\.]+) gps/],                                 // MoneroVMiner
+  [1,       2, /([\d\.]+) G\/s/],                                            // gminer
   [1000000, 2, /([\d\.]+) MH\/s/],                                           // gminer
 ];
 
@@ -122,7 +123,6 @@ function bench_algo_deps(bench_algo, perf) {
     case "rx/0": return {
       "rx/0":          perf,
       "rx/loki":       perf,
-      "rx/v":          perf,
     };
     case "defyx": return {
       "defyx":         perf,
@@ -785,7 +785,7 @@ function do_miner_perf_runs(cb) {
         tree_kill(miner_proc.pid);
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
-        curr_miner_protocol = json.method === "mining.authorize" ? "eth" : (json.id === "Stratum" ? "grin" : "default");
+        curr_miner_protocol = json.method === "mining.authorize" ? "eth" : (json.id === "Stratum" || json.params.algorithm === "cuckarood29v" ? "grin" : "default");
         switch (curr_miner_protocol) {
           case "grin": miner_socket_write(miner_socket, grin_json_reply("login", "ok")); break;
           case "eth":  miner_socket_write(miner_socket, json_reply(json, true)); break;
@@ -1072,7 +1072,7 @@ function main() {
 
   miner_login_cb = function(json, miner_socket) {
     if (curr_pool_socket && !curr_miner_socket) log("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was established due to new miner connection");
-    set_curr_miner(miner_socket, json.method === "mining.authorize" ? "eth" : (json.id === "Stratum" ? "grin" : "default"));
+    set_curr_miner(miner_socket, json.method === "mining.authorize" ? "eth" : (json.id === "Stratum" || json.params.algorithm === "cuckarood29v" ? "grin" : "default"));
     switch (curr_miner_protocol) {
       case "grin": miner_socket_write(miner_socket, grin_json_reply("login", "ok")); break;
       case "eth":  miner_socket_write(miner_socket, json_reply(json, true)); break;

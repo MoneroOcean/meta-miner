@@ -11,7 +11,7 @@ cryptonight_r
 - Pool address: e.g. pool.example.com:3333
 localhost:3333
 - Username (wallet address or pool login):
-44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1
+89TxfrUmqJJcb1V124WsUzA78Xa3UYHt7Bg8RGMhXVeZYPN8cE5CZEk58Y1m23ZMLHN7wYeJ9da5n5MXharEjrm41hSnWHL
 ```
 
 * Enable faster hashrate output by setting "h_print_time" to 60 in config.txt.
@@ -64,7 +64,7 @@ randomx
 - Pool address: e.g. pool.example.com:3333
 localhost:3333
 - Username (wallet address or pool login):
-44qJYxdbuqSKarYnDSXB6KLbsH4yR65vpJe3ELLDii9i4ZgKpgQXZYR4AMJxBJbfbKZGWUxZU42QyZSsP4AyZZMbJBCrWr1
+89TxfrUmqJJcb1V124WsUzA78Xa3UYHt7Bg8RGMhXVeZYPN8cE5CZEk58Y1m23ZMLHN7wYeJ9da5n5MXharEjrm41hSnWHL
 - Password (mostly empty or x):
 
 - Does this pool port support TLS/SSL? Use no if unknown. (y/N)
