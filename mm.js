@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v3.1";
+const VERSION      = "v4.0";
 const DEFAULT_ALGO = "rx/0"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -42,18 +42,29 @@ const AGENT        = "Meta Miner " + VERSION;
 // the multiplier is for supporting hashrate prints in different units
 // the nr benchmark prints is to make sure hashrate has stabilized before snapping the benchmark value
 const hashrate_regexes = [
-  [1,    1, /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],       // for old xmrig
-  [1,    1, /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for new xmrig
-  [1,    1, /\s+miner\s+speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for xmrig v6+
-  [1,    1, /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/], // xmr-stak
-  [1,    1, /Total Speed: ([\d\.]+) H\/s,/],                              // claymore
-  [1,    1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
-  [1e3,  3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
-  [1,    3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
-  [1/40, 1, /Mining at\s+([\d\.]+) gps/],                                 // tube4referenceMiner (use mode=rolling command line option)
-  [1/32, 1, /mining at\s+([\d\.]+) gps/],                                 // SwapReferenceMiner (use mode=rolling command line option)
-  [1/16, 2, /Total\s+:\s+([\d\.]+) gps/],                                 // MoneroVMiner
+  [1,       1, /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],       // for old xmrig
+  [1,       1, /\[[^\]]+\] speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for new xmrig
+  [1,       1, /\s+miner\s+speed 10s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],        // for xmrig v6+
+  [1,       1, /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/], // xmr-stak
+  [1,       1, /Total Speed: ([\d\.]+) H\/s,/],                              // claymore
+  [1,       1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
+  [1e3,     3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
+  [1,       3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
+  [1,       1, /Mining at\s+([\d\.]+) gps/],                                 // tube4referenceMiner (use mode=rolling command line option)
+  [1,       1, /mining at\s+([\d\.]+) gps/],                                 // SwapReferenceMiner (use mode=rolling command line option)
+  [1,       2, /Total\s+:\s+([\d\.]+) gps/],                                 // MoneroVMiner
+  [1000000, 2, /([\d\.]+) MH\/s/],                                           // gminer
 ];
+
+function algo_hashrate_factor(algo) {
+  switch (algo) {
+    case "kawpow": return 1 / 0x100000000;
+    case "c29s":   return 1 / 32;
+    case "c29b":   return 1 / 40;
+    case "c29v":   return 1 / 16;
+    default:       return 1;
+  }
+}
 
 // main algos we bench for
 const bench_algos = [
@@ -69,68 +80,76 @@ const bench_algos = [
   "c29s",
   "c29v",
   "c29b",
+  "kawpow",
+  "ethash",
 ];
 
 // algo and their perf that can be derived from thier main algo perf
 function bench_algo_deps(bench_algo, perf) {
-   switch (bench_algo) {
-     case "cn/r": return {
-       "cn/0":          perf,
-       "cn/1":          perf,
-       "cn/2":          perf,
-       "cn/r":          perf,
-       "cn/wow":        perf,
-       "cn/fast":       perf * 2,
-       "cn/half":       perf * 2,
-       "cn/xao":        perf,
-       "cn/rto":        perf,
-       "cn/rwz":        perf / 3 * 4,
-       "cn/zls":        perf / 3 * 4,
-       "cn/double":     perf / 2,
-     };
-     case "cn/gpu": return {
-       "cn/gpu":        perf,
-     };
-     case "cn-pico/trtl": return {
-       "cn-pico/trtl":  perf,
-     };
-     case "cn-lite/1": return {
-       "cn-lite/0":     perf,
-       "cn-lite/1":     perf,
-     };
-     case "cn-heavy/xhv": return {
-       "cn-heavy/0":    perf,
-       "cn-heavy/xhv":  perf,
-       "cn-heavy/tube": perf,
-     };
-     case "rx/wow": return {
-       "rx/wow":        perf,
-     };
-     case "rx/0": return {
-       "rx/0":          perf,
-       "rx/loki":       perf,
-       "rx/v":          perf,
-     };
-     case "defyx": return {
-       "defyx":         perf,
-     };
-     case "argon2/chukwa": return {
-       "argon2/chukwa": perf,
-     };
-     case "k12": return {
-       "k12":           perf,
-     };
-     case "c29s": return {
-       "c29s":          perf,
-     };
-     case "c29v": return {
-       "c29v":          perf,
-     };
-     case "c29b": return {
-       "c29b":          perf,
-     };
-     default: return {};
-   }
+  switch (bench_algo) {
+    case "cn/r": return {
+      "cn/0":          perf,
+      "cn/1":          perf,
+      "cn/2":          perf,
+      "cn/r":          perf,
+      "cn/wow":        perf,
+      "cn/fast":       perf * 2,
+      "cn/half":       perf * 2,
+      "cn/xao":        perf,
+      "cn/rto":        perf,
+      "cn/rwz":        perf / 3 * 4,
+      "cn/zls":        perf / 3 * 4,
+      "cn/double":     perf / 2,
+    };
+    case "cn/gpu": return {
+      "cn/gpu":        perf,
+    };
+    case "cn-pico/trtl": return {
+      "cn-pico/trtl":  perf,
+    };
+    case "cn-lite/1": return {
+      "cn-lite/0":     perf,
+      "cn-lite/1":     perf,
+    };
+    case "cn-heavy/xhv": return {
+      "cn-heavy/0":    perf,
+      "cn-heavy/xhv":  perf,
+      "cn-heavy/tube": perf,
+    };
+    case "rx/wow": return {
+      "rx/wow":        perf,
+    };
+    case "rx/0": return {
+      "rx/0":          perf,
+      "rx/loki":       perf,
+      "rx/v":          perf,
+    };
+    case "defyx": return {
+      "defyx":         perf,
+    };
+    case "argon2/chukwa": return {
+      "argon2/chukwa": perf,
+    };
+    case "k12": return {
+      "k12":           perf,
+    };
+    case "c29s": return {
+      "c29s":          perf,
+    };
+    case "c29v": return {
+      "c29v":          perf,
+    };
+    case "c29b": return {
+      "c29b":          perf,
+    };
+    case "kawpow": return {
+      "kawpow":        perf,
+    };
+    case "ethash": return {
+      "ethash":        perf,
+    };
+    default: return {};
+  }
 }
 
 // *****************************************************************************
@@ -157,6 +176,8 @@ let c = {
     "c29s":          0,
     "c29v":          0,
     "c29b":          0,
+    "kawpow":        0,
+    "ethash":        0,
   },
   algo_min_time: 0,
   user: null,
@@ -177,9 +198,11 @@ let is_miner_stdin    = false;
 // *****************************************************************************
 
 let curr_miner_socket     = null;
-let curr_miner_protocol   = "default"; // curr_miner_socket communication protocol that can be "default" or "grin"
+let curr_miner_protocol   = "default"; // curr_miner_socket communication protocol that can be "default", "grin" or "eth"
 let curr_pool_socket      = null;
 let curr_pool_last_job    = null;
+let curr_pool_miner_id    = null;
+let curr_pool_last_target = null;
 let curr_miner            = null;
 let next_miner_to_run     = null; // here we store miner command line that will be run after current miner is stopped or null if no miner is being stopped now
 let curr_pool_num         = 0;
@@ -192,6 +215,7 @@ let main_pool_check_timer  = null;
 let miner_proc             = null;
 let miner_login_cb         = null;
 let miner_get_first_job_cb = null;
+let miner_subscribe_cb     = null;
 let miner_last_submit_time = null;
 
 // *****************************************************************************
@@ -268,7 +292,7 @@ function killPid(pid, signal) {
     }
 }
 
-function buildProcessTree (parentPid, tree, pidsToProcess, spawnChildProcessesList, cb) {
+function buildProcessTree(parentPid, tree, pidsToProcess, spawnChildProcessesList, cb) {
     var ps = spawnChildProcessesList(parentPid);
     var allData = '';
     ps.stdout.on('data', function (data) {
@@ -319,7 +343,7 @@ function print_all_messages(str) {
     for (let i in hashrate_regexes) {
       const hashrate_regex = hashrate_regexes[i];
       const m = str2.match(hashrate_regex[2]);
-      if (m) last_miner_hashrate = parseFloat(m[1]) * hashrate_regex[0];
+      if (m) last_miner_hashrate = parseFloat(m[1]) * hashrate_regex[0] * algo_hashrate_factor(curr_algo);
     }
   }
 }
@@ -336,7 +360,21 @@ function set_curr_miner(socket, protocol) {
 }
 
 function grin_json_reply(method, result) {
-  return JSON.stringify({"jsonrpc": "2.0", "method": method, "result": result}) + "\n";
+  return JSON.stringify({jsonrpc: "2.0", method: method, result: result}) + "\n";
+}
+
+function json_reply(json, result) {
+  return JSON.stringify({jsonrpc: "2.0", id: json.id, error: null, result: result}) + "\n";
+}
+
+function miner_socket_write(miner_socket, message) {
+  if (is_debug) log("Meta-Miner message to miner: " + message);
+  miner_socket.write(message);
+}
+
+function pool_socket_write(pool_socket, message) {
+  if (is_debug) log("Meta-Miner message to pool: " + message);
+  pool_socket.write(message);
 }
 
 let miner_server = net.createServer(function (miner_socket) {
@@ -364,20 +402,26 @@ let miner_server = net.createServer(function (miner_socket) {
         continue;
       }
       if (is_debug) log("Miner message: " + JSON.stringify(json));
-      const is_method = "method" in json;
-      if (is_method && json.method === "login") {
+      if (json.method === "login") {
         if (curr_miner_socket) { // need to restart miner in case of second login attempt to clean its internal state
           replace_miner(curr_miner);
         } else {
           miner_login_cb(json, miner_socket);
           if (curr_miner_protocol !== "grin") miner_get_first_job_cb(json, miner_socket);
         }
-      } else if (is_method && json.method === "getjobtemplate") { // only for grin
-          miner_get_first_job_cb(json, miner_socket);
+      } else if (json.method === "mining.authorize") {
+        miner_login_cb(json, miner_socket);
+        miner_get_first_job_cb(json, miner_socket);
+      } else if (json.method === "getjobtemplate") { // only for grin
+        miner_get_first_job_cb(json, miner_socket);
+      } else if (json.method === "mining.subscribe") { // only for eth/raven
+        miner_subscribe_cb(json, miner_socket);
+      } else if (json.method === "mining.extranonce.subscribe") { // only for eth/raven
+        miner_socket_write(miner_socket, json_reply(json, true));
       } else if (curr_pool_socket) {
-        curr_pool_socket.write(JSON.stringify(json) + "\n");
-        if (is_method && json.method === "submit") miner_last_submit_time = Date.now();
-      } else if (!(is_method && json.method === "keepalived")) {
+        pool_socket_write(curr_pool_socket, JSON.stringify(json) + "\n");
+        if (json.method === "submit" || json.method === "mining.submit") miner_last_submit_time = Date.now();
+      } else if (json.method !== "keepalived") {
         err("Can't write miner reply to the pool since its socket is closed");
       }
     }
@@ -447,11 +491,12 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
   let pool_socket = is_tls ? tls.connect(port, host, { rejectUnauthorized: false }) : net.connect(port, host);
 
   pool_socket.on('connect', function () {
-    pool_socket.write(
-      '{"id":1,"jsonrpc": "2.0","method":"login","params":{"login":"' + c.user +
-      '","pass":"' + c.pass + '","agent":"' + AGENT + '","algo":' + JSON.stringify(Object.keys(c.algos)) +
-      ',"algo-perf":' + JSON.stringify(c.algo_perf) + ',"algo-min-time":' + c.algo_min_time + '}}\n'
-    );
+    pool_socket_write(pool_socket, JSON.stringify({
+      id: 1, jsonrpc: "2.0", method: "login", params: {
+        login: c.user, pass: c.pass, agent: AGENT,
+        algo: Object.keys(c.algos), "algo-perf": c.algo_perf, "algo-min-time": c.algo_min_time
+      }
+    }) + "\n");
   });
 
   let is_pool_ok = false; 
@@ -473,14 +518,13 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
         continue;
       }
       if (is_debug) log("Pool message: " + JSON.stringify(json));
-      // different for first and subsequent XMR pool jobs
-      const is_new_job = ("result" in json && (json.result instanceof Object) && "job" in json.result && (json.result.job instanceof Object)) ||
-                         ("method" in json && json.method === "job" && "params" in json && (json.params instanceof Object));
-      if (is_new_job) {
-        if (!is_pool_ok) { pool_ok_cb(pool_num, pool_socket); is_pool_ok = true; }
+      if (!is_pool_ok && "error" in json && json.error === null) {
+        pool_ok_cb(pool_num, pool_socket);
+        is_pool_ok = true;
       }
-      if (is_pool_ok) pool_new_msg_cb(is_new_job, json);
-      else err("Ignoring pool (" + c.pools[pool_num] + ") message that does not contain job: " + JSON.stringify(json));
+      if (is_pool_ok) {
+        pool_new_msg_cb(json);
+      } else err("Ignoring pool (" + c.pools[pool_num] + ") message since pool not reported no errors yet: " + JSON.stringify(json));
     }
     pool_data_buff = incomplete_line;
     
@@ -547,50 +591,62 @@ function replace_miner(next_miner) {
   }
 }
 
-function pool_new_msg(is_new_job, json) {
-  if (is_new_job) {
-    let next_algo = DEFAULT_ALGO;
+function pool_new_msg(json) {
+  let next_job_algo = null;
 
-    if ("params" in json && "algo" in json.params) next_algo = json.params.algo;
-    else if ("result" in json && "job" in json.result && "algo" in json.result.job) next_algo = json.result.job.algo;
+  // record job updates and diff changes initiated by the pool
+  if ("method" in json) switch (json.method) {
+    case "job":
+      next_job_algo = "params" in json && "algo" in json.params ? json.params.algo : DEFAULT_ALGO; // for usual jobs
+      curr_pool_last_job = json.params;
+      break;
 
-    if ("params" in json) {
-      if (curr_pool_last_job) {
-        curr_pool_last_job.result.job = json.params;
-      } else {
-        err("[INTERNAL ERROR] Can not update pool (" + c.pools[curr_pool_num] + ") job since its first job is missing");
-      }
-    } else {
-      curr_pool_last_job = json;
+    case "mining.notify":
+      next_job_algo = "algo" in json ? json.algo : DEFAULT_ALGO; // for Raven/Eth jobs
+      curr_pool_last_job = json.params;
+      break;
+
+    case "mining.set_target":
+    case "mining.set_difficulty":
+      curr_pool_last_target = json;
+
+  } else if ("result" in json && json.result instanceof Object && "id" in json.result) { // record miner id in login pool reply and job if any
+    curr_pool_miner_id = json.result.id;
+    if ("job" in json.result) {
+      next_job_algo = "algo" in json.result.job ? json.result.job.algo : DEFAULT_ALGO; // for the first job
+      curr_pool_last_job = json.result.job;
     }
+  }
 
-    if (!(next_algo in c.algos)) {
-      err("Ignoring job with unknown algo " + next_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
+  if (next_job_algo !== null) {
+    if (!(next_job_algo in c.algos)) {
+      err("Ignoring job with unknown algo " + next_job_algo + " sent by the pool (" + c.pools[curr_pool_num] + ")");
       return;
     }
 
-    if (curr_algo != next_algo) last_algo_change_time = Date.now();
-    curr_algo = next_algo;
-    const next_miner = c.algos[next_algo];
+    if (curr_algo != next_job_algo) last_algo_change_time = Date.now();
+    curr_algo = next_job_algo;
+    const next_miner = c.algos[next_job_algo];
     if (!curr_miner || curr_miner != next_miner) {
       set_curr_miner(null);
-      if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_algo + " algo");
+      if (!is_quiet_mode) log("Starting miner '" + next_miner + "' to process new " + next_job_algo + " algo");
       curr_miner = next_miner;
       replace_miner(next_miner);
     }
   }
 
-  if (curr_miner_socket) {
-    if (curr_miner_protocol === "grin") {
-      if (is_new_job) curr_miner_socket.write(grin_json_reply("getjobtemplate", curr_pool_last_job.result.job));
+  if (curr_miner_socket) switch (curr_miner_protocol) {
+    case "grin":
+      if (next_job_algo !== null) miner_socket_write(curr_miner_socket, grin_json_reply("getjobtemplate", curr_pool_last_job));
       else {
         let grin_json = json;
         if ("result" in grin_json && "status" in grin_json.result && grin_json.result.status === "OK") grin_json.result = "ok";
-        curr_miner_socket.write(JSON.stringify(grin_json) + "\n");
+        miner_socket_write(curr_miner_socket, JSON.stringify(grin_json) + "\n");
       }
-    } else {
-      curr_miner_socket.write(JSON.stringify(json) + "\n"); 
-    }
+      break;
+
+    default:
+      miner_socket_write(curr_miner_socket, JSON.stringify(json) + "\n");
   }
 }
 
@@ -602,8 +658,10 @@ function pool_err(pool_num) {
   }
   if (curr_pool_num != pool_num) err("[INTERNAL ERROR] Unexpected pool_num in pool_err");
   if (curr_pool_socket && curr_miner_socket) err("Pool (" + c.pools[pool_num] + ") <-> miner link was broken due to pool socket error");
-  curr_pool_socket = null;
-  curr_pool_last_job   = null;
+  curr_pool_socket      = null;
+  curr_pool_last_job    = null;
+  curr_pool_miner_id    = null;
+  curr_pool_last_target = null;
   if (++ curr_pool_num >= c.pools.length) {
     if (is_verbose_mode) log("Waiting 60 seconds before trying to connect to the same pools once again");
     setTimeout(connect_pool, 60*1000, curr_pool_num = 0, pool_ok, pool_new_msg, pool_err);
@@ -615,13 +673,23 @@ function pool_err(pool_num) {
 // *** Miner execution checks
 
 function set_first_miner_user_pass(json) {
-  if (c.user === null && "params" in json && (json.params instanceof Object) && "login" in json.params) {
-    c.user = json.params.login;
-    if (is_verbose_mode) log("Setting pool user to '" + c.user + "'");
-  }
-  if (c.pass === null && "params" in json && (json.params instanceof Object) && "pass" in json.params) {
-    c.pass = json.params.pass;
-    if (is_verbose_mode) log("Setting pool pass to '" + c.pass + "'");
+  if ("method" in json && "params" in json) {
+    if (c.user === null) {
+      if (json.method === "login" && (json.params instanceof Object) && "login" in json.params) {
+        c.user = json.params.login;
+      } else if (json.method === "mining.authorize" && Array.isArray(json.params) && json.params.length >= 1) {
+        c.user = json.params[0];
+      }
+      if (is_verbose_mode) log("Setting pool user to '" + c.user + "'");
+    }
+    if (c.pass === null) {
+      if (json.method === "login" && (json.params instanceof Object) && "pass" in json.params) {
+        c.pass = json.params.pass;
+      } else if (json.method === "mining.authorize" && Array.isArray(json.params) && json.params.length >= 2) {
+        c.pass = json.params[1];
+      }
+      if (is_verbose_mode) log("Setting pool pass to '" + c.pass + "'");
+    }
   }
 }
 
@@ -655,6 +723,9 @@ function check_miners(smart_miners, miners, cb) {
         tree_kill(miner_proc.pid);
       };
       miner_get_first_job_cb = function() {};
+      miner_subscribe_cb = function(json, miner_socket) {
+        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "check", "EthereumStratum/1.0.0" ], "00" ] ));
+      };
       miner_proc = start_miner(cmd, print_messages);
     });
   });
@@ -682,6 +753,9 @@ function check_miners(smart_miners, miners, cb) {
         tree_kill(miner_proc.pid);
       };
       miner_get_first_job_cb = function() {};
+      miner_subscribe_cb = function(json, miner_socket) {
+        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "check", "EthereumStratum/1.0.0" ], "00" ] ));
+      };
       miner_proc = start_miner(cmd, print_messages);
     });
   }
@@ -711,45 +785,91 @@ function do_miner_perf_runs(cb) {
         tree_kill(miner_proc.pid);
       }, 5*60*1000);
       miner_login_cb = function(json, miner_socket) {
-        curr_miner_protocol = json.id === "Stratum" ? "grin" : "default";
-        if (curr_miner_protocol === "grin") miner_socket.write(grin_json_reply("login", "ok"));
+        curr_miner_protocol = json.method === "mining.authorize" ? "eth" : (json.id === "Stratum" ? "grin" : "default");
+        switch (curr_miner_protocol) {
+          case "grin": miner_socket_write(miner_socket, grin_json_reply("login", "ok")); break;
+          case "eth":  miner_socket_write(miner_socket, json_reply(json, true)); break;
+        }
       };
       miner_get_first_job_cb = function(json, miner_socket) {
-        if (curr_miner_protocol === "grin") miner_socket.write(JSON.stringify({
-          jsonrpc:  "2.0",
-          id:       "Stratum",
-          error:    null,
-          method:   "getjobtemplate",
-          result: {
-            difficulty: 99999999,
-            pre_pow:    "0c0ccbc9035e0000000026c1674f64401b00e6c50b681f21bb5d5bb07be6d4a9d12a8cb2b493c9c039fee90877199a9dc04dccd734cf9b4b30eae84d06b94da19614536f3a87b0fe65f201",
-            algo:       "cuckaroo",
-            edgebits:   29,
-            proofsize:  32,
-            noncebytes: 4,
-            height:     0,
-            job_id:     "100000000000000",
-            id:         "100000000000000",
-            status:     "OK"
-          }
-        }) + "\n"); else miner_socket.write(JSON.stringify({
-          jsonrpc:  "2.0",
-          id:       "id" in json ? json.id : 1,
-          error:    null,
-          result: {
-            id:     "benchmark",
-            status: "OK",
-            job: {
-              target:    "01000000",
-              blob:      "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03",
-              seed_hash: "0000000000000000000000000000000000000000000000000000000000000001",
-              algo:      algo,
-              height:    0,
-              job_id:    "benchmark1",
-              id:        "benchmark"
+        switch (curr_miner_protocol) {
+          case "grin": miner_socket_write(miner_socket, JSON.stringify({
+            jsonrpc:  "2.0",
+            id:       "Stratum",
+            error:    null,
+            method:   "getjobtemplate",
+            result: {
+              difficulty: 99999999,
+              pre_pow:    "0c0ccbc9035e0000000026c1674f64401b00e6c50b681f21bb5d5bb07be6d4a9d12a8cb2b493c9c039fee90877199a9dc04dccd734cf9b4b30eae84d06b94da19614536f3a87b0fe65f201",
+              algo:       "cuckaroo",
+              edgebits:   29,
+              proofsize:  algo === "c29s" ? 32 : (algo === "c29b" ? 40 : 48),
+              noncebytes: 4,
+              height:     0,
+              job_id:     "100000000000000",
+              id:         "100000000000000",
+              status:     "OK",
             }
+          }) + "\n");
+          break;
+
+          case "eth": switch (algo) {
+            case "kawpow": miner_socket_write(miner_socket, JSON.stringify({
+              jsonrpc:  "2.0",
+              method:   "mining.notify",
+              params: [
+                "benchmark1", // job_id
+                "9dbee6903f8adf34d45169beeeeab5dd50fb1a603931068110f200c2b95bce61", // blob
+                "accf7d1311da015b8dd41569c845c0ac739f0637707b8a117119fe1b5aeaa011", // seed hash
+                "000000000002bd75000000000000000000000000000000000000000000000000", // target
+                true,
+                1595758,
+                "1b0290a7",
+              ]
+            }) + "\n");
+            break;
+
+            case "ethash": miner_socket_write(miner_socket, JSON.stringify({
+              jsonrpc:  "2.0",
+              method:   "mining.set_difficulty",
+              params: [
+                1000000
+              ],
+            }) + "\n" + JSON.stringify({
+              jsonrpc:  "2.0",
+              method:   "mining.notify",
+              params: [
+                "benchmark1", // job_id
+                "e79f0f63030bf691445c2b9d0266b24a9619e355194067f2ad2c73a8e0a26c65", // seed hash
+                "feb4243b885cd1af5337979f5d81849335cab197b4993e5c61ea4b43b43dbbc6", // hash
+                true,
+              ]
+            }) + "\n");
           }
-        }) + "\n");
+          break;
+
+          default: miner_socket_write(miner_socket, JSON.stringify({
+            jsonrpc:  "2.0",
+            id:       "id" in json ? json.id : 1,
+            error:    null,
+            result: {
+              id:     "benchmark",
+              status: "OK",
+              job: {
+                target:    "01000000",
+                blob:      "7f7ffeeaa0db054f15eca39c843cb82c15e5c5a7743e06536cb541d4e96e90ffd31120b7703aa90000000076a6f6e34a9977c982629d8fe6c8b45024cafca109eef92198784891e0df41bc03",
+                seed_hash: "0000000000000000000000000000000000000000000000000000000000000001",
+                algo:      algo,
+                height:    0,
+                job_id:    "benchmark1",
+                id:        "benchmark",
+              }
+            }
+          }) + "\n");
+        }
+      };
+      miner_subscribe_cb = function(json, miner_socket) {
+        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "benchmark", "EthereumStratum/1.0.0" ], "00" ] ));
       };
       let nr_prints_needed = -1;
       let nr_prints_found = 0;
@@ -761,7 +881,7 @@ function do_miner_perf_runs(cb) {
           const m = str.match(hashrate_regex[2]);
           if (m) {
             if (nr_prints_needed < 0) nr_prints_needed = hashrate_regex[1];
-            const hashrate = parseFloat(m[1]) * hashrate_regex[0];
+            const hashrate = parseFloat(m[1]) * hashrate_regex[0] * algo_hashrate_factor(algo);
             if (++nr_prints_found >= nr_prints_needed) {
               const algo_deps = bench_algo_deps(algo, hashrate);
               for (let algo_dep in algo_deps) {
@@ -952,20 +1072,50 @@ function main() {
 
   miner_login_cb = function(json, miner_socket) {
     if (curr_pool_socket && !curr_miner_socket) log("Pool (" + c.pools[curr_pool_num] + ") <-> miner link was established due to new miner connection");
-    set_curr_miner(miner_socket, json.id === "Stratum" ? "grin" : "default");
-    if (curr_miner_protocol === "grin") miner_socket.write(grin_json_reply("login", "ok"));
+    set_curr_miner(miner_socket, json.method === "mining.authorize" ? "eth" : (json.id === "Stratum" ? "grin" : "default"));
+    switch (curr_miner_protocol) {
+      case "grin": miner_socket_write(miner_socket, grin_json_reply("login", "ok")); break;
+      case "eth":  miner_socket_write(miner_socket, json_reply(json, true)); break;
+    }
   };
   miner_get_first_job_cb = function(json, miner_socket) {
     if (curr_pool_last_job) {
-      if (curr_miner_protocol === "grin") {
-        miner_socket.write(grin_json_reply("getjobtemplate", curr_pool_last_job.result.job));
-      } else {
-        let curr_pool_last_job_id = curr_pool_last_job;
-        if ("id" in json) curr_pool_last_job_id.id = json.id;
-        miner_socket.write(JSON.stringify(curr_pool_last_job_id) + "\n");
+      switch (curr_miner_protocol) {
+        case "grin":
+          miner_socket_write(miner_socket, grin_json_reply("getjobtemplate", curr_pool_last_job));
+          break;
+
+        case "eth":
+          if (curr_pool_last_target) miner_socket_write(miner_socket, JSON.stringify(curr_pool_last_target) + "\n");
+          miner_socket_write(miner_socket, JSON.stringify({
+            jsonrpc: "2.0",
+            method:  "mining.notify",
+            params:  curr_pool_last_job
+          }) + "\n");
+          break;
+
+        default:
+          let reply = { jsonrpc: "2.0", error: null, result: { id: curr_pool_miner_id, job: curr_pool_last_job, status: "OK" } };
+          if ("id" in json) reply.id = json.id;
+          miner_socket_write(miner_socket, JSON.stringify(reply) + "\n");
       }
     } else {
       err("No pool (" + c.pools[curr_pool_num] + ") job to send to the miner!");
+    }
+  };
+  miner_subscribe_cb = function(json, miner_socket) {
+    if (curr_miner_socket) { // need to restart miner in case of second login attempt to clean its internal state
+      replace_miner(curr_miner);
+    } else if (curr_pool_socket) {
+      set_curr_miner(miner_socket, "eth");
+      pool_socket_write(curr_pool_socket, JSON.stringify(json) + "\n");
+    } else {
+      err("No active pool (" + c.pools[curr_pool_num] + ") to send subscribe job to the miner!");
+      miner_socket_write(miner_socket, JSON.stringify({
+        jsonrpc:  "2.0",
+        id:       json.id,
+        error:    "No active meta-miner pool",
+      }) + "\n");
     }
   };
 
