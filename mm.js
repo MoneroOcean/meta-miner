@@ -1128,7 +1128,7 @@ function main() {
     setInterval(function () {
       if (curr_pool_socket) {
         if (is_verbose_mode) log("Sending keepalive message to the pool");
-        pool_socket_write(curr_pool_socket, JSON.stringify({jsonrpc: "2.0", id: "mm", method: "keepalived", params: []}) + "\n");
+        pool_socket_write(curr_pool_socket, JSON.stringify({jsonrpc: "2.0", id: "mm", method: "keepalived", params: {}}) + "\n");
       }
       if (!curr_pool_socket || !curr_miner_socket || miner_last_submit_time === null) return;
       const miner_idle_time = (Date.now() - miner_last_submit_time) / 1000;
