@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v4.0";
+const VERSION      = "v4.1";
 const DEFAULT_ALGO = "rx/0"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
