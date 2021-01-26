@@ -518,12 +518,16 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
         continue;
       }
       if (is_debug) log("Pool message: " + JSON.stringify(json));
-      if (!is_pool_ok && "error" in json && json.error === null) {
+      if (!is_pool_ok && json.error === null) {
         pool_ok_cb(pool_num, pool_socket);
         is_pool_ok = true;
       }
       if (is_pool_ok) {
-        pool_new_msg_cb(json);
+        if (json.id === "mm" && json.error === null && json.result instanceof Object && json.result.status === "KEEPALIVED") {
+          if (is_verbose) log("Keepalive reply recieved from the pool");
+        } else {
+          pool_new_msg_cb(json);
+        }
       } else err("Ignoring pool (" + c.pools[pool_num] + ") message since pool not reported no errors yet: " + JSON.stringify(json));
     }
     pool_data_buff = incomplete_line;
@@ -1122,6 +1126,10 @@ function main() {
   if (c.watchdog) {
     if (is_verbose_mode) log("Starting miner watchdog timer (with " + c.watchdog + " seconds max since last miner result)");
     setInterval(function () {
+      if (curr_pool_socket) {
+        if (is_verbose) log("Sending keepalive message to the pool");
+        pool_socket_write(curr_pool_socket, JSON.stringify({jsonrpc: "2.0", id: "mm", method: "keepalived", params: []}) + "\n");
+      }
       if (!curr_pool_socket || !curr_miner_socket || miner_last_submit_time === null) return;
       const miner_idle_time = (Date.now() - miner_last_submit_time) / 1000;
       if (miner_idle_time > c.watchdog) {
