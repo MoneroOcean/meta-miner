@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v4.1";
+const VERSION      = "v4.2";
 const DEFAULT_ALGO = "rx/0"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -644,7 +644,10 @@ function pool_new_msg(json) {
       if (next_job_algo !== null) miner_socket_write(curr_miner_socket, grin_json_reply("getjobtemplate", curr_pool_last_job));
       else {
         let grin_json = json;
-        if ("result" in grin_json && "status" in grin_json.result && grin_json.result.status === "OK") grin_json.result = "ok";
+        if ("result" in grin_json && "status" in grin_json.result && grin_json.result.status === "OK") {
+          grin_json.method = "submit";
+          grin_json.result = "ok";
+        }
         miner_socket_write(curr_miner_socket, JSON.stringify(grin_json) + "\n");
       }
       break;
