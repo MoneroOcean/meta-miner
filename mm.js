@@ -422,7 +422,7 @@ let miner_server = net.createServer(function (miner_socket) {
       } else if (json.method === "mining.subscribe") { // only for eth/raven
         miner_subscribe_cb(json, miner_socket);
       } else if (json.method === "mining.extranonce.subscribe") { // only for eth/raven
-        miner_socket_write(miner_socket, json_reply(json, true));
+        miner_socket_write(miner_socket, json_reply(json, false));
       } else if (curr_pool_socket) {
         pool_socket_write(curr_pool_socket, JSON.stringify(json) + "\n");
         if (json.method === "submit" || json.method === "mining.submit") miner_last_submit_time = Date.now();
@@ -1117,7 +1117,9 @@ function main() {
           break;
 
         case "eth":
-          if (curr_pool_last_target) miner_socket_write(miner_socket, JSON.stringify(curr_pool_last_target) + "\n");
+          if (curr_pool_last_target && curr_algo != "autolykos2") {
+            miner_socket_write(miner_socket, JSON.stringify(curr_pool_last_target) + "\n");
+          }
           miner_socket_write(miner_socket, JSON.stringify({
             jsonrpc: "2.0",
             method:  "mining.notify",
