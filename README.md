@@ -16,7 +16,7 @@ Options:
         --port=<number>:                defines port that will be used for miner connections (3333 by default)
         --user=<wallet> (-u):           <wallet> to use as pool user login (will be taken from the first miner otherwise)
         --pass=<miner_id>:              <miner_id> to use as pool pass login (will be taken from the first miner otherwise)
-        --perf_<algo>=<hashrate>        Sets hashrate for algo that is: rx/0, rx/wow, defyx, cn/r, cn-pico/trtl, cn-heavy/xhv, cn/gpu, argon2/chukwa, k12, c29s, c29v, c29b, kawpow, ethash
+        --perf_<algo>=<hashrate>        Sets hashrate for algo that is: rx/0, rx/wow, defyx, cn/r, cn-pico/trtl, cn-heavy/xhv, cn/gpu, argon2/chukwa, k12, c29s, c29v, c29b, kawpow, ethash, autolykos2
         --algo_min_time=<seconds>       Sets <seconds> minimum time pool should keep our miner on one algo (0 default, set higher for starting miners)
         --miner=<command_line> (-m):    <command_line> to start smart miner that can report algo itself
         --<algo>=<command_line>:        <command_line> to start miner for <algo> that can not report it itself
@@ -69,7 +69,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "kawpow": "./gminer/miner --server localhost:3333 --user 87MKQonkAUsQ9MNGKB3L51PE884cTeJbgcu6zWZPZt13b632huSGu9xPZwQALhLnAadEurYA8npRPZTJUWed95ZAT17brdt --pass gpu_miner --algo kawpow",
   "c29s": "./gminer/miner --server localhost:3333 --user 87MKQonkAUsQ9MNGKB3L51PE884cTeJbgcu6zWZPZt13b632huSGu9xPZwQALhLnAadEurYA8npRPZTJUWed95ZAT17brdt --pass gpu_miner --algo cuckaroo29s",
   "c29b": "./gminer/miner --server localhost:3333 --user 87MKQonkAUsQ9MNGKB3L51PE884cTeJbgcu6zWZPZt13b632huSGu9xPZwQALhLnAadEurYA8npRPZTJUWed95ZAT17brdt --pass gpu_miner --algo cuckaroo29b",
-  "c29v": "./gminer39/miner --server localhost:3333 --user 87MKQonkAUsQ9MNGKB3L51PE884cTeJbgcu6zWZPZt13b632huSGu9xPZwQALhLnAadEurYA8npRPZTJUWed95ZAT17brdt --pass gpu_miner --algo cuckarood29"
+  "c29v": "./gminer39/miner --server localhost:3333 --user 87MKQonkAUsQ9MNGKB3L51PE884cTeJbgcu6zWZPZt13b632huSGu9xPZwQALhLnAadEurYA8npRPZTJUWed95ZAT17brdt --pass gpu_miner --algo cuckarood29",
+  "autolykos2": "./trex/t-rex -a autolykos2 -o stratum+tcp://localhost:3333 -u 87MKQonkAUsQ9MNGKB3L51PE884cTeJbgcu6zWZPZt13b632huSGu9xPZwQALhLnAadEurYA8npRPZTJUWed95ZAT17brdt -p gpu_miner"
  },
  "algo_perf": {
   "rx/0": 243.6,
@@ -101,7 +102,8 @@ Check https://github.com/xmrig/xmrig-proxy/blob/master/doc/STRATUM_EXT.md#14-alg
   "c29s": 0.23375,
   "c29v": 0.4875,
   "kawpow": 0.003953464329242706,
-  "ethash": 49860000
+  "ethash": 49860000,
+  "autolykos2": 144120000
  },
  "algo_min_time": 0,
  "user": "89TxfrUmqJJcb1V124WsUzA78Xa3UYHt7Bg8RGMhXVeZYPN8cE5CZEk58Y1m23ZMLHN7wYeJ9da5n5MXharEjrm41hSnWHL",

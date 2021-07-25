@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v4.2";
+const VERSION      = "v4.3";
 const DEFAULT_ALGO = "rx/0"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -83,6 +83,7 @@ const bench_algos = [
   "c29b",
   "kawpow",
   "ethash",
+  "autolykos2",
 ];
 
 // algo and their perf that can be derived from thier main algo perf
@@ -148,6 +149,9 @@ function bench_algo_deps(bench_algo, perf) {
     case "ethash": return {
       "ethash":        perf,
     };
+    case "autolykos2": return {
+      "autolykos2":    perf,
+    };
     default: return {};
   }
 }
@@ -178,6 +182,7 @@ let c = {
     "c29b":          0,
     "kawpow":        0,
     "ethash":        0,
+    "autolykos2":    0,
   },
   algo_min_time: 0,
   user: null,
@@ -731,7 +736,7 @@ function check_miners(smart_miners, miners, cb) {
       };
       miner_get_first_job_cb = function() {};
       miner_subscribe_cb = function(json, miner_socket) {
-        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "check", "EthereumStratum/1.0.0" ], "00" ] ));
+        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "check", "EthereumStratum/1.0.0" ], "00", 7 ] ));
       };
       miner_proc = start_miner(cmd, print_messages);
     });
@@ -761,7 +766,7 @@ function check_miners(smart_miners, miners, cb) {
       };
       miner_get_first_job_cb = function() {};
       miner_subscribe_cb = function(json, miner_socket) {
-        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "check", "EthereumStratum/1.0.0" ], "00" ] ));
+        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "check", "EthereumStratum/1.0.0" ], "00", 7 ] ));
       };
       miner_proc = start_miner(cmd, print_messages);
     });
@@ -852,6 +857,25 @@ function do_miner_perf_runs(cb) {
                 true,
               ]
             }) + "\n");
+            break;
+
+            case "autolykos2": miner_socket_write(miner_socket, JSON.stringify({
+              jsonrpc:  "2.0",
+              method:   "mining.notify",
+              params: [
+                "benchmark1", // job_id
+                539302,       // height
+                "920b5e8ed76f90e760469f04391ffaef3b5ecf1e1cb9363c449f490bc1564663", // hash
+                "",
+                "",
+                2, // block version
+                "82463468449557216163199121184281840485288878744226428810224501", // target
+                "",
+                true
+              ]
+            }) + "\n");
+            break;
+
           }
           break;
 
@@ -876,7 +900,7 @@ function do_miner_perf_runs(cb) {
         }
       };
       miner_subscribe_cb = function(json, miner_socket) {
-        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "benchmark", "EthereumStratum/1.0.0" ], "00" ] ));
+        miner_socket_write(miner_socket, json_reply(json, [ [ "mining.notify", "benchmark", "EthereumStratum/1.0.0" ], "00", 7 ] ));
       };
       let nr_prints_needed = -1;
       let nr_prints_found = 0;
