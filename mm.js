@@ -422,7 +422,7 @@ let miner_server = net.createServer(function (miner_socket) {
       } else if (json.method === "mining.subscribe") { // only for eth/raven
         miner_subscribe_cb(json, miner_socket);
       } else if (json.method === "mining.extranonce.subscribe") { // only for eth/raven
-        miner_socket_write(miner_socket, json_reply(json, false));
+        miner_socket_write(miner_socket, json_reply(json, true));
       } else if (curr_pool_socket) {
         pool_socket_write(curr_pool_socket, JSON.stringify(json) + "\n");
         if (json.method === "submit" || json.method === "mining.submit") miner_last_submit_time = Date.now();
