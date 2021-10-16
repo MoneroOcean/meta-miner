@@ -69,70 +69,86 @@ function algo_hashrate_factor(algo) {
 
 // main algos we bench for
 const bench_algos = [
-  "rx/0",
-  "rx/wow",
-  "defyx",
   "cn/r",
-  "cn-pico/trtl",
+  "cn-lite/1",
   "cn-heavy/xhv",
+  "cn-pico/trtl",
+  "cn/ccx",
   "cn/gpu",
   "argon2/chukwa",
-  "k12",
+  "kawpow",
+  "astrobwt",
+  "rx/0",
+  "rx/graft",
+  "rx/arq",
+  "panthera",
+  "autolykos2",
+  "c29b",
   "c29s",
   "c29v",
-  "c29b",
-  "kawpow",
   "ethash",
-  "autolykos2",
+  "k12",
 ];
 
 // algo and their perf that can be derived from thier main algo perf
 function bench_algo_deps(bench_algo, perf) {
   switch (bench_algo) {
+    case "cn/ccx": return {
+      "cn/ccx":        perf,
+      "cn/0":          perf / 2
+    };
     case "cn/r": return {
-      "cn/0":          perf,
       "cn/1":          perf,
       "cn/2":          perf,
       "cn/r":          perf,
-      "cn/wow":        perf,
+      "cn/rto":        perf,
+      "cn/xao":        perf,
       "cn/fast":       perf * 2,
       "cn/half":       perf * 2,
-      "cn/xao":        perf,
-      "cn/rto":        perf,
       "cn/rwz":        perf / 3 * 4,
       "cn/zls":        perf / 3 * 4,
       "cn/double":     perf / 2,
-    };
-    case "cn/gpu": return {
-      "cn/gpu":        perf,
-    };
-    case "cn-pico/trtl": return {
-      "cn-pico/trtl":  perf,
     };
     case "cn-lite/1": return {
       "cn-lite/0":     perf,
       "cn-lite/1":     perf,
     };
     case "cn-heavy/xhv": return {
-      "cn-heavy/0":    perf,
       "cn-heavy/xhv":  perf,
-      "cn-heavy/tube": perf,
     };
-    case "rx/wow": return {
-      "rx/wow":        perf,
+    case "cn-pico/trtl": return {
+      "cn-pico/trtl":  perf,
     };
-    case "rx/0": return {
-      "rx/0":          perf,
-      "rx/loki":       perf,
-    };
-    case "defyx": return {
-      "defyx":         perf,
+    case "cn/gpu": return {
+      "cn/gpu":        perf,
     };
     case "argon2/chukwa": return {
       "argon2/chukwa": perf,
     };
-    case "k12": return {
-      "k12":           perf,
+    case "astrobwt": return {
+      "astrobwt":      perf,
+    };
+    case "kawpow": return {
+      "kawpow":        perf,
+    };
+    case "rx/0": return {
+      "rx/0":          perf,
+      "rx/sfx":        perf,
+    };
+    case "rx/graft": return {
+      "rx/graft":      perf,
+    };
+    case "rx/arq": return {
+      "rx/arq":        perf,
+    };
+    case "panthera": return {
+      "panthera":      perf,
+    };
+    case "autolykos2": return {
+      "autolykos2":    perf,
+    };
+    case "c29b": return {
+      "c29b":          perf,
     };
     case "c29s": return {
       "c29s":          perf,
@@ -140,17 +156,11 @@ function bench_algo_deps(bench_algo, perf) {
     case "c29v": return {
       "c29v":          perf,
     };
-    case "c29b": return {
-      "c29b":          perf,
-    };
-    case "kawpow": return {
-      "kawpow":        perf,
-    };
     case "ethash": return {
       "ethash":        perf,
     };
-    case "autolykos2": return {
-      "autolykos2":    perf,
+    case "k12": return {
+      "k12":           perf,
     };
     default: return {};
   }
@@ -167,23 +177,7 @@ let c = {
   miner_port: 3333,
   pools: [],
   algos: {},
-  algo_perf: {
-    "rx/0":          0,
-    "cn/r":          0,
-    "cn/gpu":        0,
-    "cn-heavy/xhv":  0,
-    "cn-pico/trtl":  0,
-    "rx/wow":        0,
-    "defyx":         0,
-    "argon2/chukwa": 0,
-    "k12":           0,
-    "c29s":          0,
-    "c29v":          0,
-    "c29b":          0,
-    "kawpow":        0,
-    "ethash":        0,
-    "autolykos2":    0,
-  },
+  algo_perf: {},
   algo_min_time: 0,
   user: null,
   pass: null,
