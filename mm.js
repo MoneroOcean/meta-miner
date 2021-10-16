@@ -163,6 +163,7 @@ function bench_algo_deps(bench_algo, perf) {
 let console_file = process.cwd() + "/mm.json";
 
 let c = {
+  proc_title: "meta-miner",
   miner_host: "127.0.0.1",
   miner_port: 3333,
   pools: [],
@@ -948,6 +949,7 @@ function print_help() {
   console.log("<config_file.json> is file name of config file to load before parsing options (mm.json by default)");
   console.log("Config file and options should define at least one pool and miner:");
   console.log("Options:");
+  console.log("\t--proc_title=<title> (-t):     \t<title> to use as the process.title (default: meta-miner)");
   console.log("\t--pool=<pool> (-p):            \t<pool> is in pool_address:pool_port format, where pool_port can be <port_number> or ssl<port_number>");
   console.log("\t--host=<hostname>:             \tdefines host that will be used for miner connections (localhost 127.0.0.1 by default)");
   console.log("\t--port=<number>:               \tdefines port that will be used for miner connections (3333 by default)");
@@ -994,6 +996,8 @@ function parse_argv(cb) {
     if (m = val.match(/^(?:--?help|-h|-\?)$/)) {
       print_help();
       process.exit(0);
+    } else if (m = val.match(/^(?:--proc_title|-t)=(.+)$/)) {
+      c.proc_title = m[1];
     } else if (m = val.match(/^(?:--quiet|-q)$/)) {
       is_quiet_mode = true;
     } else if (m = val.match(/^(?:--verbose|-v)$/)) {
@@ -1186,6 +1190,7 @@ function main() {
   connect_pool(curr_pool_num = 0, pool_ok, pool_new_msg, pool_err);
 };
 
+process.title = 'meta-miner';
 log("Meta Miner " + VERSION);
 
 parse_argv(function() {
@@ -1199,5 +1204,6 @@ parse_argv(function() {
     process.exit(1);
   }
 
+  if(process.title !== c.proc_title) process.title = c.proc_title;
   do_miner_perf_runs(main);
 });
