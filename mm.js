@@ -831,11 +831,11 @@ function do_miner_perf_runs(cb) {
               method:   "mining.notify",
               params: [
                 "benchmark1", // job_id
-                "9dbee6903f8adf34d45169beeeeab5dd50fb1a603931068110f200c2b95bce61", // blob
+                "4c38e8a5f7b2944d1e4274635d828519b97bc64a1f1c7896ecdbb139988aa0e8", // blob
                 "accf7d1311da015b8dd41569c845c0ac739f0637707b8a117119fe1b5aeaa011", // seed hash
                 "000000000002bd75000000000000000000000000000000000000000000000000", // target
                 true,
-                1595758,
+                1500000,
                 "1b0290a7",
               ]
             }) + "\n");
