@@ -385,6 +385,7 @@ function pool_socket_write(pool_socket, message) {
 let miner_server = net.createServer(function (miner_socket) {
   if (curr_miner_socket) {
     err("Miner server on " + c.miner_host + ":" + c.miner_port + " port is already connected (please make sure you do not have other miner running)");
+    miner_socket.end();
     return;
   }
   if (is_verbose_mode) log("Miner server on " + c.miner_host + ":" + c.miner_port + " port connected from " + miner_socket.remoteAddress);
