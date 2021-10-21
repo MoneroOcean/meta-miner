@@ -42,19 +42,37 @@ const AGENT        = "Meta Miner " + VERSION;
 // the multiplier is for supporting hashrate prints in different units
 // the nr benchmark prints is to make sure hashrate has stabilized before snapping the benchmark value
 const hashrate_regexes = [
-  [1,       1, /\[[^\]]+\] speed 2.5s\/60s\/15m [\d\.]+ ([\d\.]+)\s/],       // for old xmrig
-  [1,       1, /\[[^\]]+\] speed 10s\/60s\/15m [\d\.n/a]+ ([\d\.]+)\s/],     // for new xmrig
-  [1,       1, /\s+miner\s+speed 10s\/60s\/15m [\d\.n/a]+ ([\d\.]+)\s/],     // for xmrig v6+
-  [1,       1, /Totals \(ALL\):\s+[\d\.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/], // xmr-stak
-  [1,       1, /Total Speed: ([\d\.]+) H\/s,/],                              // claymore
-  [1,       1, /\(Avr ([\d\.]+)H\/s\)/],                                     // CryptoDredge
-  [1e3,     3, /Total[^:]+:\s*([\d\.]+)\s*kh\/s/],                           // TeamRedMiner variant 1 (kh/s)
-  [1,       3, /Total[^:]+:\s*([\d\.]+)\s*h\/s/],                            // TeamRedMiner variant 2 (h/s)
-  [1,       1, /Mining at\s+([\d\.]+) gps/],                                 // tube4referenceMiner (use mode=rolling command line option)
-  [1,       1, /mining at\s+([\d\.]+) gps/],                                 // SwapReferenceMiner (use mode=rolling command line option)
-  [1,       2, /Total\s+:\s+([\d\.]+) gps/],                                 // MoneroVMiner
-  [1,       2, /([\d\.]+) G\/s/],                                            // gminer
-  [1000000, 2, /([\d\.]+) MH\/s/],                                           // gminer
+  [1,   2, /^\|.*[^\d.]([\d.]+) G\/s.*\|$/,                            'gminer (gh/s)'],
+  [1e6, 2, /^\|.*[^\d.]([\d.]+) M\/s.*\|$/,                            'gminer (mh/s)'],
+  [1,   3, /^\[[^\]]+] Total[^:]+:\s*([\d.]+)\s*[Hh]\/s/,              'TeamRedMiner (h/s)'],
+  [1e3, 3, /^\[[^\]]+] Total[^:]+:\s*([\d.]+)\s*[Kk]h\/s/,             'TeamRedMiner (kh/s)'],
+  [1e6, 3, /^\[[^\]]+] Total[^:]+:\s*([\d.]+)\s*[Mm]h\/s,/,            'TeamRedMiner (mh/s)'],
+  [1e9, 3, /^\[[^\]]+] Total[^:]+:\s*([\d.]+)\s*[Gg]h\/s,/,            'TeamRedMiner (gh/s)'],
+  [1,   2, /^ethminer .* ([\d.]+) h - /,                               'ethminer (h/s)'],
+  [1e3, 2, /^ethminer .* ([\d.]+) Kh - /,                              'ethminer (kh/s)'],
+  [1e6, 2, /^ethminer .* ([\d.]+) Mh - /,                              'ethminer (mh/s)'],
+  [1e9, 2, /^ethminer .* ([\d.]+) Gh - /,                              'ethminer (gh/s)'],
+  [1,   2, /^GPU #(\d+): .* - ([\d.]+) H\/s/,                          'T-Rex (h/s)'],
+  [1e3, 2, /^GPU #(\d+): .* - ([\d.]+) KH\/s/,                         'T-Rex (kh/s)'],
+  [1e6, 2, /^GPU #(\d+): .* - ([\d.]+) MH\/s/,                         'T-Rex (mh/s)'],
+  [1e9, 2, /^GPU #(\d+): .* - ([\d.]+) GH\/s/,                         'T-Rex (gh/s)'],
+  [1,   2, /^Average speed \(30s\): ([\d.]+) h\/s/,                    'lolMiner (h/s)'],
+  [1e3, 2, /^Average speed \(30s\): ([\d.]+) kh\/s/,                   'lolMiner (kh/s)'],
+  [1e6, 2, /^Average speed \(30s\): ([\d.]+) mh\/s/,                   'lolMiner (mh/s)'],
+  [1e9, 2, /^Average speed \(30s\): ([\d.]+) gh\/s/,                   'lolMiner (gh/s)'],
+  [1,   2, /^Eth speed: ([\d.]+) H\/s, shares:.*time:/,                'PhoenixMiner (h/s)'],
+  [1e3, 2, /^Eth speed: ([\d.]+) KH\/s, shares:.*time:/,               'PhoenixMiner (kh/s)'],
+  [1e6, 2, /^Eth speed: ([\d.]+) MH\/s, shares:.*time:/,               'PhoenixMiner (mh/s)'],
+  [1e9, 2, /^Eth speed: ([\d.]+) GH\/s, shares:.*time:/,               'PhoenixMiner (gh/s)'],
+  [1,   1, /\[[^\]]+] speed 2.5s\/60s\/15m [\d.]+ ([\d.]+)\s/,         'xmrig old'],
+  [1,   1, /\[[^\]]+] speed 10s\/60s\/15m [\d.n/a]+ ([\d.]+)\s/,       'xmrig new'],
+  [1,   1, /\s+miner\s+speed 10s\/60s\/15m [\d.n/a]+ ([\d.]+)\s/,      'xmrig v6+'],
+  [1,   1, /Totals \(ALL\):\s+[\d.]+\s+([1-9]\d*\.\d+|0\.[1-9]\d*)\s/, 'xmr-stak'],
+  [1,   1, /Total Speed: ([\d.]+) H\/s,/,                              'claymore'],
+  [1,   1, /\(Avr ([\d.]+)H\/s\)/,                                     'CryptoDredge'],
+  [1,   1, /Mining at\s+([\d.]+) gps/,                                 'tube4referenceMiner (use mode=rolling command line option)'],
+  [1,   1, /mining at\s+([\d.]+) gps/,                                 'SwapReferenceMiner (use mode=rolling command line option)'],
+  [1,   2, /Total\s+:\s+([\d.]+) gps/,                                 'MoneroVMiner'],
 ];
 
 function algo_hashrate_factor(algo) {
@@ -486,7 +504,7 @@ function start_miner(cmd, out_cb) {
    let exe = args.shift();
    return start_miner_raw(exe, args, out_cb);
 }
- 
+
 // *** Pool socket processing
 
 function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
@@ -508,7 +526,7 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
     }) + "\n");
   });
 
-  let is_pool_ok = false; 
+  let is_pool_ok = false;
   let pool_data_buff = "";
 
   pool_socket.on('data', function (msg) {
@@ -540,7 +558,7 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
       } else err("Ignoring pool (" + c.pools[pool_num] + ") message since pool not reported no errors yet: " + JSON.stringify(json));
     }
     pool_data_buff = incomplete_line;
-    
+
   });
 
   pool_socket.on('end', function() {
@@ -557,7 +575,7 @@ function connect_pool(pool_num, pool_ok_cb, pool_new_msg_cb, pool_err_cb) {
     pool_err_cb(pool_num);
   });
 }
-           
+
 // *** connect_pool function callbacks
 
 function set_main_pool_check_timer() {
@@ -850,15 +868,15 @@ function do_miner_perf_runs(cb) {
               jsonrpc:  "2.0",
               method:   "mining.set_difficulty",
               params: [
-                1000000
+                10.24
               ],
             }) + "\n" + JSON.stringify({
               jsonrpc:  "2.0",
               method:   "mining.notify",
               params: [
                 "benchmark1", // job_id
-                "e79f0f63030bf691445c2b9d0266b24a9619e355194067f2ad2c73a8e0a26c65", // seed hash
-                "feb4243b885cd1af5337979f5d81849335cab197b4993e5c61ea4b43b43dbbc6", // hash
+                "ffaad0781cfec93fee66657ef8a9f132f422becba3626b5d936ad3cb1f8228d4", // seed hash
+                "a917c993b27e4a15c6ed3611bcaa7e5eee5c9b984053f6c1270032c0c4d6dc83", // hash
                 true,
               ]
             }) + "\n");
@@ -909,27 +927,70 @@ function do_miner_perf_runs(cb) {
       };
       let nr_prints_needed = -1;
       let nr_prints_found = 0;
-      miner_proc = start_miner(cmd, function(str) {
-        print_messages(str);
-        str = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
-        for (let i in hashrate_regexes) {
-          const hashrate_regex = hashrate_regexes[i];
-          const m = str.match(hashrate_regex[2]);
-          if (m) {
-            if (nr_prints_needed < 0) nr_prints_needed = hashrate_regex[1];
-            const hashrate = parseFloat(m[1]) * hashrate_regex[0] * algo_hashrate_factor(algo);
-            if (++nr_prints_found >= nr_prints_needed) {
-              const algo_deps = bench_algo_deps(algo, hashrate);
-              for (let algo_dep in algo_deps) {
-                log("Setting performance for " + algo_dep + " algo to " + algo_deps[algo_dep]);
-                c.algo_perf[algo_dep] = algo_deps[algo_dep];
+      let chunk_leftover = '';
+      miner_proc = start_miner(cmd, function(chunk) {
+        chunk = [chunk_leftover, chunk].join('');
+        const buf_size = chunk.lastIndexOf('\n');
+        chunk_leftover = chunk.slice(chunk, buf_size);
+        const eol = `\x1b[0m\n`;
+        let gpu_max = -1;
+        let gpu_max_valid = false;
+        const variance = [];
+        const hashrate_raw = [];
+        const hashrate_prev = [];
+        processing:
+        for (let str of chunk.split('\n')) {
+          print_messages(str + eol);
+          str = str.replace(/\x1b\[[0-9;]*m/g, ""); // remove all colors
+          for (let i in hashrate_regexes) {
+            const hashrate_regex = hashrate_regexes[i];
+            const m = str.match(hashrate_regex[2]);
+            if (m) {
+              if (nr_prints_needed < 0) nr_prints_needed = hashrate_regex[1];
+              let gpu = (m.length === 3) ? m[1] : 0;
+              if (gpu_max > -1 && gpu <= gpu_max) gpu_max_valid = true;
+              if (gpu > gpu_max) gpu_max = gpu;
+              if (m.length === 3) {
+                m[1] = m[2];
+                m.length = 2;
               }
-              miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
-              tree_kill(miner_proc.pid);
-              break;
-            } else {
-              log("Read performance for " + algo + " algo to " + hashrate + ", waiting for " + 
-                     (nr_prints_needed - nr_prints_found) + " more print(s).");
+              hashrate_raw[gpu] = parseFloat(m[1]);
+              if (!gpu_max_valid) {
+                hashrate_prev[gpu] = hashrate_raw[gpu];
+              } else if (hashrate_raw[gpu] > 0) {
+                if (hashrate_prev.length < gpu) hashrate_prev[gpu] = hashrate_raw[gpu];
+                variance[gpu] = hashrate_prev[gpu] / hashrate_raw[gpu];
+                let variance_good = true;
+                for (const j in variance) {
+                  if (!(variance[j] > 0.98 && variance[j] < 1.02)) {
+                    variance_good = false;
+                  }
+                }
+                if (gpu === gpu_max) {
+                  let hashrate = 0;
+                  for (const j in hashrate_raw) {
+                    hashrate += hashrate_raw[j] * hashrate_regex[0] * algo_hashrate_factor(algo);
+                  }
+                  if (variance_good && ++nr_prints_found >= nr_prints_needed) {
+                    const algo_deps = bench_algo_deps(algo, hashrate);
+                    for (let algo_dep in algo_deps) {
+                      log("Setting performance for " + algo_dep + " algo to " + algo_deps[algo_dep]);
+                      c.algo_perf[algo_dep] = algo_deps[algo_dep];
+                    }
+                    miner_proc.on('close', (code) => { clearTimeout(timeout); resolve(); });
+                    tree_kill(miner_proc.pid);
+                    break processing;
+                  } else {
+                    let msg = "Read";
+                    if (!variance_good) {
+                      msg = "Skip";
+                    }
+                    log(msg + " performance for " + algo + " algo of " + hashrate + ", waiting for " +
+                           (nr_prints_needed - nr_prints_found) + " more print(s).");
+                  }
+                }
+                hashrate_prev[gpu] = hashrate_raw[gpu];
+              }
             }
           }
         }
@@ -1119,6 +1180,7 @@ function main() {
   };
   miner_get_first_job_cb = function(json, miner_socket) {
     if (curr_pool_last_job) {
+      let reply;
       switch (curr_miner_protocol) {
         case "grin":
           miner_socket_write(miner_socket, grin_json_reply("getjobtemplate", curr_pool_last_job));
@@ -1136,7 +1198,7 @@ function main() {
           break;
 
         default:
-          let reply = { jsonrpc: "2.0", error: null, result: { id: curr_pool_miner_id, job: curr_pool_last_job, status: "OK" } };
+          reply = {jsonrpc: "2.0", error: null, result: {id: curr_pool_miner_id, job: curr_pool_last_job, status: "OK"}};
           if ("id" in json) reply.id = json.id;
           miner_socket_write(miner_socket, JSON.stringify(reply) + "\n");
       }
