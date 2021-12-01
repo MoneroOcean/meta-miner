@@ -34,7 +34,7 @@ const child_process = require('child_process');
 // *** CONSTS                                                                ***
 // *****************************************************************************
 
-const VERSION      = "v4.3";
+const VERSION      = "v4.4";
 const DEFAULT_ALGO = "rx/0"; // this is algo that is assumed to be sent by pool if its job does not contain algo stratum extension
 const AGENT        = "Meta Miner " + VERSION;
 
@@ -77,6 +77,7 @@ const bench_algos = [
   "cn/gpu",
   "argon2/chukwa",
   "kawpow",
+  "ghostrider",
   "astrobwt",
   "rx/0",
   "rx/graft",
@@ -161,6 +162,9 @@ function bench_algo_deps(bench_algo, perf) {
     };
     case "k12": return {
       "k12":           perf,
+    };
+    case "ghostrider": return {
+      "ghostrider":    perf,
     };
     default: return {};
   }
