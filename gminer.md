@@ -6,9 +6,7 @@
 sudo apt-get update
 sudo apt-get install -y nodejs
 wget https://raw.githubusercontent.com/MoneroOcean/meta-miner/master/mm.js
-chmod +x mm.js
-```
-
+chmod +x mm.jschmod +x''
 * Get gminer (and gminer v.2.39 for c29v algo support):
 
 ```shell
